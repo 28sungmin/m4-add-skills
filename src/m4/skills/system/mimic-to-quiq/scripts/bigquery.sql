@@ -72,7 +72,9 @@ RETURNS STRING AS (
         'barcode_type','complete_dose_not_given','will_remainder_be_given',
         'new_iv_bag_hung','continued_infusion_in_other_location','infusion_complete',
         'non_formulary_visual_verification','spec_type_desc','ab_name',
-        'sex','linksto','category','fluid'
+        'sex','linksto','category','fluid',
+        'administration_type',
+        'gsn','ndc','etccode'
     ) THEN '1' ELSE '0' END
 );
 
