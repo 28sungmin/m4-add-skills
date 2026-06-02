@@ -478,9 +478,10 @@ q_labevents_base AS (
         COALESCE(CAST(le.storetime       AS STRING), '') AS _storetime,
         COALESCE(CAST(le.ref_range_lower AS STRING), '') AS _ref_lower,
         COALESCE(CAST(le.ref_range_upper AS STRING), '') AS _ref_upper,
-        COALESCE(CAST(le.flag            AS STRING), '') AS _flag,
-        COALESCE(CAST(le.`priority`      AS STRING), '') AS _priority,
-        COALESCE(CAST(le.comments        AS STRING), '') AS _comments
+        COALESCE(CAST(le.flag               AS STRING), '') AS _flag,
+        COALESCE(CAST(le.`priority`         AS STRING), '') AS _priority,
+        COALESCE(CAST(le.comments           AS STRING), '') AS _comments,
+        COALESCE(CAST(le.order_provider_id  AS STRING), '') AS _order_provider_id
     FROM `physionet-data`.mimiciv_3_1_hosp.labevents le
     LEFT JOIN `physionet-data`.mimiciv_3_1_hosp.d_labitems di ON le.itemid = di.itemid
 ),
@@ -496,45 +497,51 @@ q_labevents_all AS (
     FROM q_labevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_labevents_base
     UNION ALL
     -- ③ valuenum
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'valuenum', _ev, _vu, _valuenum, _var_type(_valuenum),
            '0', 'event', 'lab_event', 3
     FROM q_labevents_base
     UNION ALL
     -- ④ ref_range_lower
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ref_range_lower', NULL, _vu, _ref_lower, _var_type(_ref_lower),
            '0', NULL, NULL, 4
     FROM q_labevents_base
     UNION ALL
     -- ⑤ ref_range_upper
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ref_range_upper', NULL, _vu, _ref_upper, _var_type(_ref_upper),
            '0', NULL, NULL, 5
     FROM q_labevents_base
     UNION ALL
     -- ⑥ flag
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'flag', _ev, NULL, _flag, 'string',
            '1', NULL, NULL, 6
     FROM q_labevents_base
     UNION ALL
     -- ⑦ priority
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'priority', NULL, NULL, _priority, 'string',
            '1', NULL, NULL, 7
     FROM q_labevents_base
     UNION ALL
     -- ⑧ comments
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'comments', NULL, NULL, _comments, 'string',
            '0', NULL, NULL, 8
+    FROM q_labevents_base
+    UNION ALL
+    -- ⑨ order_provider_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'order_provider_id', NULL, NULL, _order_provider_id, _var_type(_order_provider_id),
+           '0', NULL, NULL, 9
     FROM q_labevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
@@ -564,9 +571,11 @@ q_chartevents_base AS (
              ELSE _var_type(CAST(ce.`value` AS STRING)) END   AS _vtype,
         CASE WHEN ce.valuenum IS NULL AND ce.`value` IS NOT NULL
              THEN '1' ELSE '0' END                             AS _iscat,
-        COALESCE(CAST(ce.storetime  AS STRING), '')           AS _storetime,
-        COALESCE(CAST(ce.valuenum   AS STRING), '')           AS _valuenum,
-        COALESCE(CAST(ce.warning    AS STRING), '')           AS _warning
+        COALESCE(CAST(ce.storetime    AS STRING), '')         AS _storetime,
+        COALESCE(CAST(ce.valuenum     AS STRING), '')         AS _valuenum,
+        COALESCE(CAST(ce.warning      AS STRING), '')         AS _warning,
+        COALESCE(CAST(ce.stay_id      AS STRING), '')         AS _stay_id,
+        COALESCE(CAST(ce.caregiver_id AS STRING), '')         AS _caregiver_id
     FROM `physionet-data`.mimiciv_3_1_icu.chartevents ce
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ce.itemid = di.itemid
 ),
@@ -578,21 +587,33 @@ q_chartevents_all AS (
     FROM q_chartevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_chartevents_base
     UNION ALL
     -- ③ valuenum
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'valuenum', _ev, _vu, _valuenum, _var_type(_valuenum),
            '0', 'event', 'chart_event', 3
     FROM q_chartevents_base
     UNION ALL
     -- ④ warning
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 4
+    FROM q_chartevents_base
+    UNION ALL
+    -- ⑤ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 5
+    FROM q_chartevents_base
+    UNION ALL
+    -- ⑥ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 6
     FROM q_chartevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
@@ -608,9 +629,11 @@ q_datetimeevents_base AS (
         COALESCE(di.label, CAST(de.itemid AS STRING))         AS _var_name,
         CAST(de.charttime AS STRING)                          AS _ev,
         CAST(de.valueuom  AS STRING)                          AS _vu,
-        COALESCE(CAST(de.`value`    AS STRING), '')           AS _val,
-        COALESCE(CAST(de.storetime  AS STRING), '')           AS _storetime,
-        COALESCE(CAST(de.warning    AS STRING), '')           AS _warning
+        COALESCE(CAST(de.`value`      AS STRING), '')         AS _val,
+        COALESCE(CAST(de.storetime    AS STRING), '')         AS _storetime,
+        COALESCE(CAST(de.warning      AS STRING), '')         AS _warning,
+        COALESCE(CAST(de.stay_id      AS STRING), '')         AS _stay_id,
+        COALESCE(CAST(de.caregiver_id AS STRING), '')         AS _caregiver_id
     FROM `physionet-data`.mimiciv_3_1_icu.datetimeevents de
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON de.itemid = di.itemid
 ),
@@ -622,15 +645,27 @@ q_datetimeevents_all AS (
     FROM q_datetimeevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_datetimeevents_base
     UNION ALL
     -- ③ warning
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 3
+    FROM q_datetimeevents_base
+    UNION ALL
+    -- ④ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 4
+    FROM q_datetimeevents_base
+    UNION ALL
+    -- ⑤ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 5
     FROM q_datetimeevents_base
 ),
 
@@ -667,7 +702,11 @@ q_ingredientevents_base AS (
         COALESCE(CAST(ie.rate              AS STRING), '') AS _rate,
         COALESCE(CAST(ie.statusdescription AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount    AS STRING), '') AS _originalamount,
-        COALESCE(CAST(ie.originalrate      AS STRING), '') AS _originalrate
+        COALESCE(CAST(ie.originalrate      AS STRING), '') AS _originalrate,
+        COALESCE(CAST(ie.stay_id           AS STRING), '') AS _stay_id,
+        COALESCE(CAST(ie.caregiver_id      AS STRING), '') AS _caregiver_id,
+        COALESCE(CAST(ie.orderid           AS STRING), '') AS _orderid,
+        COALESCE(CAST(ie.linkorderid       AS STRING), '') AS _linkorderid
     FROM `physionet-data`.mimiciv_3_1_icu.ingredientevents ie
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
@@ -679,45 +718,69 @@ q_ingredientevents_all AS (
     FROM q_ingredientevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_ingredientevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_ingredientevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑤ rate (I&O event)
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'rate', _ev, _ru, _rate, _var_type(_rate),
            '0', 'event', NULL, 5
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑥ statusdescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 6
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑦ originalamount
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'originalamount', NULL, _au, _originalamount, _var_type(_originalamount),
            '0', NULL, NULL, 7
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑧ originalrate
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 8
+    FROM q_ingredientevents_base
+    UNION ALL
+    -- ⑨ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 9
+    FROM q_ingredientevents_base
+    UNION ALL
+    -- ⑩ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 10
+    FROM q_ingredientevents_base
+    UNION ALL
+    -- ⑪ orderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
+           '0', NULL, NULL, 11
+    FROM q_ingredientevents_base
+    UNION ALL
+    -- ⑫ linkorderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
+           '0', NULL, NULL, 12
     FROM q_ingredientevents_base
 ),
 
@@ -748,7 +811,11 @@ q_inputevents_base AS (
         COALESCE(CAST(ie.continueinnextdept            AS STRING), '') AS _continueinnextdept,
         COALESCE(CAST(ie.statusdescription             AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount                AS STRING), '') AS _originalamount,
-        COALESCE(CAST(ie.originalrate                  AS STRING), '') AS _originalrate
+        COALESCE(CAST(ie.originalrate                  AS STRING), '') AS _originalrate,
+        COALESCE(CAST(ie.stay_id                       AS STRING), '') AS _stay_id,
+        COALESCE(CAST(ie.caregiver_id                  AS STRING), '') AS _caregiver_id,
+        COALESCE(CAST(ie.orderid                       AS STRING), '') AS _orderid,
+        COALESCE(CAST(ie.linkorderid                   AS STRING), '') AS _linkorderid
     FROM `physionet-data`.mimiciv_3_1_icu.inputevents ie
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
@@ -760,99 +827,123 @@ q_inputevents_all AS (
     FROM q_inputevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_inputevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_inputevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_inputevents_base
     UNION ALL
     -- ⑤ rate (I&O event)
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'rate', _ev, _ru, _rate, _var_type(_rate),
            '0', 'event', NULL, 5
     FROM q_inputevents_base
     UNION ALL
     -- ⑥ ordercategoryname
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ordercategoryname', NULL, NULL, _ordercategoryname, 'string',
            '1', NULL, NULL, 6
     FROM q_inputevents_base
     UNION ALL
     -- ⑦ secondaryordercategoryname
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'secondaryordercategoryname', NULL, NULL, _secondaryordercategoryname, 'string',
            '1', NULL, NULL, 7
     FROM q_inputevents_base
     UNION ALL
     -- ⑧ ordercomponenttypedescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ordercomponenttypedescription', NULL, NULL, _ordercomponenttypedescription, 'string',
            '1', NULL, NULL, 8
     FROM q_inputevents_base
     UNION ALL
     -- ⑨ ordercategorydescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ordercategorydescription', NULL, NULL, _ordercategorydescription, 'string',
            '1', NULL, NULL, 9
     FROM q_inputevents_base
     UNION ALL
     -- ⑩ patientweight (임상 측정값: Rule 4)
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'patientweight', NULL, NULL, _patientweight, _var_type(_patientweight),
            '0', 'event', NULL, 10
     FROM q_inputevents_base
     UNION ALL
     -- ⑪ totalamount (I&O event)
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'totalamount', NULL, _tau, _totalamount, _var_type(_totalamount),
            '0', 'event', NULL, 11
     FROM q_inputevents_base
     UNION ALL
     -- ⑫ totalamountuom
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'totalamountuom', NULL, NULL, _totalamountuom, 'string',
            '0', NULL, NULL, 12
     FROM q_inputevents_base
     UNION ALL
     -- ⑬ isopenbag
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'isopenbag', NULL, NULL, _isopenbag, _var_type(_isopenbag),
            '1', NULL, NULL, 13
     FROM q_inputevents_base
     UNION ALL
     -- ⑭ continueinnextdept
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'continueinnextdept', NULL, NULL, _continueinnextdept, _var_type(_continueinnextdept),
            '1', NULL, NULL, 14
     FROM q_inputevents_base
     UNION ALL
     -- ⑮ statusdescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 15
     FROM q_inputevents_base
     UNION ALL
     -- ⑯ originalamount
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'originalamount', NULL, _au, _originalamount, _var_type(_originalamount),
            '0', NULL, NULL, 16
     FROM q_inputevents_base
     UNION ALL
     -- ⑰ originalrate
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 17
+    FROM q_inputevents_base
+    UNION ALL
+    -- ⑱ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 18
+    FROM q_inputevents_base
+    UNION ALL
+    -- ⑲ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 19
+    FROM q_inputevents_base
+    UNION ALL
+    -- ⑳ orderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
+           '0', NULL, NULL, 20
+    FROM q_inputevents_base
+    UNION ALL
+    -- ㉑ linkorderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
+           '0', NULL, NULL, 21
     FROM q_inputevents_base
 ),
 
@@ -865,8 +956,10 @@ q_outputevents_base AS (
         COALESCE(di.label, CAST(oe.itemid AS STRING))      AS _var_name,
         CAST(oe.charttime AS STRING)                       AS _ev,
         CAST(oe.valueuom  AS STRING)                       AS _vu,
-        COALESCE(CAST(oe.`value`    AS STRING), '')        AS _val,
-        COALESCE(CAST(oe.storetime  AS STRING), '')        AS _storetime
+        COALESCE(CAST(oe.`value`      AS STRING), '')      AS _val,
+        COALESCE(CAST(oe.storetime    AS STRING), '')      AS _storetime,
+        COALESCE(CAST(oe.stay_id      AS STRING), '')      AS _stay_id,
+        COALESCE(CAST(oe.caregiver_id AS STRING), '')      AS _caregiver_id
     FROM `physionet-data`.mimiciv_3_1_icu.outputevents oe
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON oe.itemid = di.itemid
 ),
@@ -878,9 +971,21 @@ q_outputevents_all AS (
     FROM q_outputevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
+    FROM q_outputevents_base
+    UNION ALL
+    -- ③ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 3
+    FROM q_outputevents_base
+    UNION ALL
+    -- ④ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 4
     FROM q_outputevents_base
 ),
 
@@ -904,7 +1009,11 @@ q_procedureevents_base AS (
         COALESCE(CAST(pe.patientweight              AS STRING), '') AS _patientweight,
         COALESCE(CAST(pe.isopenbag                  AS STRING), '') AS _isopenbag,
         COALESCE(CAST(pe.continueinnextdept         AS STRING), '') AS _continueinnextdept,
-        COALESCE(CAST(pe.statusdescription          AS STRING), '') AS _statusdescription
+        COALESCE(CAST(pe.statusdescription          AS STRING), '') AS _statusdescription,
+        COALESCE(CAST(pe.stay_id                    AS STRING), '') AS _stay_id,
+        COALESCE(CAST(pe.caregiver_id               AS STRING), '') AS _caregiver_id,
+        COALESCE(CAST(pe.orderid                    AS STRING), '') AS _orderid,
+        COALESCE(CAST(pe.linkorderid                AS STRING), '') AS _linkorderid
     FROM `physionet-data`.mimiciv_3_1_icu.procedureevents pe
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON pe.itemid = di.itemid
 ),
@@ -916,69 +1025,93 @@ q_procedureevents_all AS (
     FROM q_procedureevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_procedureevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_procedureevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_procedureevents_base
     UNION ALL
     -- ⑤ location
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'location', _ev, NULL, _location, 'string',
            '1', NULL, NULL, 5
     FROM q_procedureevents_base
     UNION ALL
     -- ⑥ locationcategory
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'locationcategory', _ev, NULL, _locationcategory, 'string',
            '1', NULL, NULL, 6
     FROM q_procedureevents_base
     UNION ALL
     -- ⑦ ordercategoryname
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ordercategoryname', NULL, NULL, _ordercategoryname, 'string',
            '1', NULL, NULL, 7
     FROM q_procedureevents_base
     UNION ALL
     -- ⑧ ordercategorydescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'ordercategorydescription', NULL, NULL, _ordercategorydescription, 'string',
            '1', NULL, NULL, 8
     FROM q_procedureevents_base
     UNION ALL
     -- ⑨ patientweight (임상 측정값: Rule 4)
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'patientweight', NULL, NULL, _patientweight, _var_type(_patientweight),
            '0', 'event', NULL, 9
     FROM q_procedureevents_base
     UNION ALL
     -- ⑩ isopenbag
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'isopenbag', NULL, NULL, _isopenbag, _var_type(_isopenbag),
            '1', NULL, NULL, 10
     FROM q_procedureevents_base
     UNION ALL
     -- ⑪ continueinnextdept
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'continueinnextdept', NULL, NULL, _continueinnextdept, _var_type(_continueinnextdept),
            '1', NULL, NULL, 11
     FROM q_procedureevents_base
     UNION ALL
     -- ⑫ statusdescription
-    SELECT _pk, subject_id, hadm_id, '',
+    SELECT _pk, subject_id, hadm_id, _itemid,
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 12
+    FROM q_procedureevents_base
+    UNION ALL
+    -- ⑬ stay_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
+           '0', NULL, NULL, 13
+    FROM q_procedureevents_base
+    UNION ALL
+    -- ⑭ caregiver_id
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
+           '0', NULL, NULL, 14
+    FROM q_procedureevents_base
+    UNION ALL
+    -- ⑮ orderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
+           '0', NULL, NULL, 15
+    FROM q_procedureevents_base
+    UNION ALL
+    -- ⑯ linkorderid
+    SELECT _pk, subject_id, hadm_id, _itemid,
+           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
+           '0', NULL, NULL, 16
     FROM q_procedureevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
