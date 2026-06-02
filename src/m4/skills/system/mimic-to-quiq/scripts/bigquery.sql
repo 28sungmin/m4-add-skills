@@ -497,49 +497,49 @@ q_labevents_all AS (
     FROM q_labevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_labevents_base
     UNION ALL
     -- ③ valuenum
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'valuenum', _ev, _vu, _valuenum, _var_type(_valuenum),
            '0', 'event', 'lab_event', 3
     FROM q_labevents_base
     UNION ALL
     -- ④ ref_range_lower
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ref_range_lower', NULL, _vu, _ref_lower, _var_type(_ref_lower),
            '0', NULL, NULL, 4
     FROM q_labevents_base
     UNION ALL
     -- ⑤ ref_range_upper
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ref_range_upper', NULL, _vu, _ref_upper, _var_type(_ref_upper),
            '0', NULL, NULL, 5
     FROM q_labevents_base
     UNION ALL
     -- ⑥ flag
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'flag', _ev, NULL, _flag, 'string',
            '1', NULL, NULL, 6
     FROM q_labevents_base
     UNION ALL
     -- ⑦ priority
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'priority', NULL, NULL, _priority, 'string',
            '1', NULL, NULL, 7
     FROM q_labevents_base
     UNION ALL
     -- ⑧ comments
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'comments', NULL, NULL, _comments, 'string',
            '0', NULL, NULL, 8
     FROM q_labevents_base
     UNION ALL
     -- ⑨ order_provider_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'order_provider_id', NULL, NULL, _order_provider_id, _var_type(_order_provider_id),
            '0', NULL, NULL, 9
     FROM q_labevents_base
@@ -587,31 +587,31 @@ q_chartevents_all AS (
     FROM q_chartevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_chartevents_base
     UNION ALL
     -- ③ valuenum
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'valuenum', _ev, _vu, _valuenum, _var_type(_valuenum),
            '0', 'event', 'chart_event', 3
     FROM q_chartevents_base
     UNION ALL
     -- ④ warning
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 4
     FROM q_chartevents_base
     UNION ALL
     -- ⑤ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 5
     FROM q_chartevents_base
     UNION ALL
     -- ⑥ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 6
     FROM q_chartevents_base
@@ -645,25 +645,25 @@ q_datetimeevents_all AS (
     FROM q_datetimeevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_datetimeevents_base
     UNION ALL
     -- ③ warning
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 3
     FROM q_datetimeevents_base
     UNION ALL
     -- ④ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 4
     FROM q_datetimeevents_base
     UNION ALL
     -- ⑤ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 5
     FROM q_datetimeevents_base
@@ -718,67 +718,67 @@ q_ingredientevents_all AS (
     FROM q_ingredientevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_ingredientevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_ingredientevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑤ rate (I&O event)
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'rate', _ev, _ru, _rate, _var_type(_rate),
            '0', 'event', NULL, 5
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑥ statusdescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 6
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑦ originalamount
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'originalamount', NULL, _au, _originalamount, _var_type(_originalamount),
            '0', NULL, NULL, 7
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑧ originalrate
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 8
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑨ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 9
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑩ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 10
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑪ orderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'orderid', NULL, NULL, _orderid, _var_type(_orderid),
            '0', NULL, NULL, 11
     FROM q_ingredientevents_base
     UNION ALL
     -- ⑫ linkorderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
            '0', NULL, NULL, 12
     FROM q_ingredientevents_base
@@ -827,121 +827,121 @@ q_inputevents_all AS (
     FROM q_inputevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_inputevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_inputevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_inputevents_base
     UNION ALL
     -- ⑤ rate (I&O event)
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'rate', _ev, _ru, _rate, _var_type(_rate),
            '0', 'event', NULL, 5
     FROM q_inputevents_base
     UNION ALL
     -- ⑥ ordercategoryname
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ordercategoryname', NULL, NULL, _ordercategoryname, 'string',
            '1', NULL, NULL, 6
     FROM q_inputevents_base
     UNION ALL
     -- ⑦ secondaryordercategoryname
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'secondaryordercategoryname', NULL, NULL, _secondaryordercategoryname, 'string',
            '1', NULL, NULL, 7
     FROM q_inputevents_base
     UNION ALL
     -- ⑧ ordercomponenttypedescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ordercomponenttypedescription', NULL, NULL, _ordercomponenttypedescription, 'string',
            '1', NULL, NULL, 8
     FROM q_inputevents_base
     UNION ALL
     -- ⑨ ordercategorydescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ordercategorydescription', NULL, NULL, _ordercategorydescription, 'string',
            '1', NULL, NULL, 9
     FROM q_inputevents_base
     UNION ALL
     -- ⑩ patientweight (임상 측정값: Rule 4)
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'patientweight', NULL, NULL, _patientweight, _var_type(_patientweight),
            '0', 'event', NULL, 10
     FROM q_inputevents_base
     UNION ALL
     -- ⑪ totalamount (I&O event)
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'totalamount', NULL, _tau, _totalamount, _var_type(_totalamount),
            '0', 'event', NULL, 11
     FROM q_inputevents_base
     UNION ALL
     -- ⑫ totalamountuom
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'totalamountuom', NULL, NULL, _totalamountuom, 'string',
            '0', NULL, NULL, 12
     FROM q_inputevents_base
     UNION ALL
     -- ⑬ isopenbag
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'isopenbag', NULL, NULL, _isopenbag, _var_type(_isopenbag),
            '1', NULL, NULL, 13
     FROM q_inputevents_base
     UNION ALL
     -- ⑭ continueinnextdept
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'continueinnextdept', NULL, NULL, _continueinnextdept, _var_type(_continueinnextdept),
            '1', NULL, NULL, 14
     FROM q_inputevents_base
     UNION ALL
     -- ⑮ statusdescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 15
     FROM q_inputevents_base
     UNION ALL
     -- ⑯ originalamount
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'originalamount', NULL, _au, _originalamount, _var_type(_originalamount),
            '0', NULL, NULL, 16
     FROM q_inputevents_base
     UNION ALL
     -- ⑰ originalrate
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 17
     FROM q_inputevents_base
     UNION ALL
     -- ⑱ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 18
     FROM q_inputevents_base
     UNION ALL
     -- ⑲ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 19
     FROM q_inputevents_base
     UNION ALL
     -- ⑳ orderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'orderid', NULL, NULL, _orderid, _var_type(_orderid),
            '0', NULL, NULL, 20
     FROM q_inputevents_base
     UNION ALL
     -- ㉑ linkorderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
            '0', NULL, NULL, 21
     FROM q_inputevents_base
@@ -971,19 +971,19 @@ q_outputevents_all AS (
     FROM q_outputevents_base
     UNION ALL
     -- ② storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_outputevents_base
     UNION ALL
     -- ③ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 3
     FROM q_outputevents_base
     UNION ALL
     -- ④ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 4
     FROM q_outputevents_base
@@ -1025,91 +1025,91 @@ q_procedureevents_all AS (
     FROM q_procedureevents_base
     UNION ALL
     -- ② starttime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'starttime', NULL, NULL, _starttime, _var_type(_starttime),
            '0', 'date', NULL, 2
     FROM q_procedureevents_base
     UNION ALL
     -- ③ endtime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'endtime', NULL, NULL, _endtime, _var_type(_endtime),
            '0', 'date', NULL, 3
     FROM q_procedureevents_base
     UNION ALL
     -- ④ storetime
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 4
     FROM q_procedureevents_base
     UNION ALL
     -- ⑤ location
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'location', _ev, NULL, _location, 'string',
            '1', NULL, NULL, 5
     FROM q_procedureevents_base
     UNION ALL
     -- ⑥ locationcategory
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'locationcategory', _ev, NULL, _locationcategory, 'string',
            '1', NULL, NULL, 6
     FROM q_procedureevents_base
     UNION ALL
     -- ⑦ ordercategoryname
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ordercategoryname', NULL, NULL, _ordercategoryname, 'string',
            '1', NULL, NULL, 7
     FROM q_procedureevents_base
     UNION ALL
     -- ⑧ ordercategorydescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'ordercategorydescription', NULL, NULL, _ordercategorydescription, 'string',
            '1', NULL, NULL, 8
     FROM q_procedureevents_base
     UNION ALL
     -- ⑨ patientweight (임상 측정값: Rule 4)
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'patientweight', NULL, NULL, _patientweight, _var_type(_patientweight),
            '0', 'event', NULL, 9
     FROM q_procedureevents_base
     UNION ALL
     -- ⑩ isopenbag
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'isopenbag', NULL, NULL, _isopenbag, _var_type(_isopenbag),
            '1', NULL, NULL, 10
     FROM q_procedureevents_base
     UNION ALL
     -- ⑪ continueinnextdept
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'continueinnextdept', NULL, NULL, _continueinnextdept, _var_type(_continueinnextdept),
            '1', NULL, NULL, 11
     FROM q_procedureevents_base
     UNION ALL
     -- ⑫ statusdescription
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 12
     FROM q_procedureevents_base
     UNION ALL
     -- ⑬ stay_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
            '0', NULL, NULL, 13
     FROM q_procedureevents_base
     UNION ALL
     -- ⑭ caregiver_id
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
            '0', NULL, NULL, 14
     FROM q_procedureevents_base
     UNION ALL
     -- ⑮ orderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'orderid', NULL, NULL, _orderid, _var_type(_orderid),
            '0', NULL, NULL, 15
     FROM q_procedureevents_base
     UNION ALL
     -- ⑯ linkorderid
-    SELECT _pk, subject_id, hadm_id, \'\',
+    SELECT _pk, subject_id, hadm_id, '',
            'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
            '0', NULL, NULL, 16
     FROM q_procedureevents_base
