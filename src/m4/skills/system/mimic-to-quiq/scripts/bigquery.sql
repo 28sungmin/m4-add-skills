@@ -536,8 +536,6 @@ q_labevents_all AS (
            'comments', NULL, NULL, _comments, 'string',
            '0', NULL, NULL, 8
     FROM q_labevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 -- ════════════════════════════════════════════════════════════════════
 -- ④ EVENT 테이블 - chartevents (JOIN + label 방식)
@@ -596,8 +594,6 @@ q_chartevents_all AS (
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 4
     FROM q_chartevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 -- ════════════════════════════════════════════════════════════════════
 -- ① ICU WIDE 테이블 (UNPIVOT)
@@ -636,8 +632,6 @@ q_datetimeevents_all AS (
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 3
     FROM q_datetimeevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 
 -- ── icu.icustays ─────────────────────────────────────────────────
@@ -725,8 +719,6 @@ q_ingredientevents_all AS (
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 8
     FROM q_ingredientevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 
 -- ── icu.inputevents ──────────────────────────────────────────────
@@ -862,8 +854,6 @@ q_inputevents_all AS (
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 17
     FROM q_inputevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 
 -- ── icu.outputevents ─────────────────────────────────────────────
@@ -892,8 +882,6 @@ q_outputevents_all AS (
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
     FROM q_outputevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 
 -- ── icu.procedureevents ──────────────────────────────────────────
@@ -992,8 +980,6 @@ q_procedureevents_all AS (
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 12
     FROM q_procedureevents_base
-    ORDER BY subject_id, hadm_id, _pk, _rtype
-
 ),
 -- ════════════════════════════════════════════════════════════════════
 -- ① ED WIDE 테이블 (UNPIVOT)
@@ -1120,15 +1106,32 @@ SELECT _pk AS Primary_key, '' AS Variable_ID, 'ADMISSIONS' AS Original_table_nam
        '' AS Recorder, '' AS Recorder_position, '' AS Recorder_affiliation,
        CAST(subject_id AS STRING) AS Patient_id, CAST(hadm_id AS STRING) AS Admission_id,
        '' AS Ground_truth,
-       -- Rule 5: 날짜 컬럼
+       -- Rule 5: 날짜 컬럼; Rule 4: 입원 특성 변수 → event/chart_event
        CASE Variable_name
-           WHEN 'admittime'  THEN 'date'
-           WHEN 'dischtime'  THEN 'date'
-           WHEN 'deathtime'  THEN 'date'
-           WHEN 'edregtime'  THEN 'date'
-           WHEN 'edouttime'  THEN 'date'
+           WHEN 'admittime'            THEN 'date'
+           WHEN 'dischtime'            THEN 'date'
+           WHEN 'deathtime'            THEN 'date'
+           WHEN 'edregtime'            THEN 'date'
+           WHEN 'edouttime'            THEN 'date'
+           WHEN 'admission_type'       THEN 'event'
+           WHEN 'admission_location'   THEN 'event'
+           WHEN 'discharge_location'   THEN 'event'
+           WHEN 'insurance'            THEN 'event'
+           WHEN 'language'             THEN 'event'
+           WHEN 'marital_status'       THEN 'event'
+           WHEN 'race'                 THEN 'event'
+           WHEN 'hospital_expire_flag' THEN 'event'
            ELSE NULL END AS Mapping_info_1,
-       NULL AS Mapping_info_2
+       CASE Variable_name
+           WHEN 'admission_type'       THEN 'chart_event'
+           WHEN 'admission_location'   THEN 'chart_event'
+           WHEN 'discharge_location'   THEN 'chart_event'
+           WHEN 'insurance'            THEN 'chart_event'
+           WHEN 'language'             THEN 'chart_event'
+           WHEN 'marital_status'       THEN 'chart_event'
+           WHEN 'race'                 THEN 'chart_event'
+           WHEN 'hospital_expire_flag' THEN 'chart_event'
+           ELSE NULL END AS Mapping_info_2
 FROM u_admissions WHERE raw_val IS NOT NULL
 UNION ALL
 SELECT _pk, '', 'PATIENTS', Variable_name, NULL, raw_val, NULL,
