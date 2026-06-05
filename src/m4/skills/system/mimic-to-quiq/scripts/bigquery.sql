@@ -481,7 +481,6 @@ q_labevents_base AS (
         COALESCE(CAST(le.flag               AS STRING), '') AS _flag,
         COALESCE(CAST(le.`priority`         AS STRING), '') AS _priority,
         COALESCE(CAST(le.comments           AS STRING), '') AS _comments,
-        COALESCE(CAST(le.order_provider_id  AS STRING), '') AS _order_provider_id
     FROM `physionet-data`.mimiciv_3_1_hosp.labevents le
     LEFT JOIN `physionet-data`.mimiciv_3_1_hosp.d_labitems di ON le.itemid = di.itemid
 ),
@@ -537,12 +536,6 @@ q_labevents_all AS (
            'comments', NULL, NULL, _comments, 'string',
            '0', NULL, NULL, 8
     FROM q_labevents_base
-    UNION ALL
-    -- ⑨ order_provider_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'order_provider_id', NULL, NULL, _order_provider_id, _var_type(_order_provider_id),
-           '0', NULL, NULL, 9
-    FROM q_labevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
 -- ④ EVENT 테이블 - chartevents (JOIN + label 방식)
@@ -574,8 +567,6 @@ q_chartevents_base AS (
         COALESCE(CAST(ce.storetime    AS STRING), '')         AS _storetime,
         COALESCE(CAST(ce.valuenum     AS STRING), '')         AS _valuenum,
         COALESCE(CAST(ce.warning      AS STRING), '')         AS _warning,
-        COALESCE(CAST(ce.stay_id      AS STRING), '')         AS _stay_id,
-        COALESCE(CAST(ce.caregiver_id AS STRING), '')         AS _caregiver_id
     FROM `physionet-data`.mimiciv_3_1_icu.chartevents ce
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ce.itemid = di.itemid
 ),
@@ -603,18 +594,6 @@ q_chartevents_all AS (
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 4
     FROM q_chartevents_base
-    UNION ALL
-    -- ⑤ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 5
-    FROM q_chartevents_base
-    UNION ALL
-    -- ⑥ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 6
-    FROM q_chartevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
 -- ① ICU WIDE 테이블 (UNPIVOT)
@@ -631,9 +610,7 @@ q_datetimeevents_base AS (
         CAST(de.valueuom  AS STRING)                          AS _vu,
         COALESCE(CAST(de.`value`      AS STRING), '')         AS _val,
         COALESCE(CAST(de.storetime    AS STRING), '')         AS _storetime,
-        COALESCE(CAST(de.warning      AS STRING), '')         AS _warning,
-        COALESCE(CAST(de.stay_id      AS STRING), '')         AS _stay_id,
-        COALESCE(CAST(de.caregiver_id AS STRING), '')         AS _caregiver_id
+        COALESCE(CAST(de.warning      AS STRING), '')         AS _warning
     FROM `physionet-data`.mimiciv_3_1_icu.datetimeevents de
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON de.itemid = di.itemid
 ),
@@ -654,18 +631,6 @@ q_datetimeevents_all AS (
     SELECT _pk, subject_id, hadm_id, '',
            'warning', _ev, NULL, _warning, 'string',
            '1', NULL, NULL, 3
-    FROM q_datetimeevents_base
-    UNION ALL
-    -- ④ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 4
-    FROM q_datetimeevents_base
-    UNION ALL
-    -- ⑤ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 5
     FROM q_datetimeevents_base
 ),
 
@@ -702,11 +667,7 @@ q_ingredientevents_base AS (
         COALESCE(CAST(ie.rate              AS STRING), '') AS _rate,
         COALESCE(CAST(ie.statusdescription AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount    AS STRING), '') AS _originalamount,
-        COALESCE(CAST(ie.originalrate      AS STRING), '') AS _originalrate,
-        COALESCE(CAST(ie.stay_id           AS STRING), '') AS _stay_id,
-        COALESCE(CAST(ie.caregiver_id      AS STRING), '') AS _caregiver_id,
-        COALESCE(CAST(ie.orderid           AS STRING), '') AS _orderid,
-        COALESCE(CAST(ie.linkorderid       AS STRING), '') AS _linkorderid
+        COALESCE(CAST(ie.originalrate      AS STRING), '') AS _originalrate
     FROM `physionet-data`.mimiciv_3_1_icu.ingredientevents ie
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
@@ -758,30 +719,6 @@ q_ingredientevents_all AS (
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 8
     FROM q_ingredientevents_base
-    UNION ALL
-    -- ⑨ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 9
-    FROM q_ingredientevents_base
-    UNION ALL
-    -- ⑩ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 10
-    FROM q_ingredientevents_base
-    UNION ALL
-    -- ⑪ orderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
-           '0', NULL, NULL, 11
-    FROM q_ingredientevents_base
-    UNION ALL
-    -- ⑫ linkorderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
-           '0', NULL, NULL, 12
-    FROM q_ingredientevents_base
 ),
 
 -- ── icu.inputevents ──────────────────────────────────────────────
@@ -811,11 +748,7 @@ q_inputevents_base AS (
         COALESCE(CAST(ie.continueinnextdept            AS STRING), '') AS _continueinnextdept,
         COALESCE(CAST(ie.statusdescription             AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount                AS STRING), '') AS _originalamount,
-        COALESCE(CAST(ie.originalrate                  AS STRING), '') AS _originalrate,
-        COALESCE(CAST(ie.stay_id                       AS STRING), '') AS _stay_id,
-        COALESCE(CAST(ie.caregiver_id                  AS STRING), '') AS _caregiver_id,
-        COALESCE(CAST(ie.orderid                       AS STRING), '') AS _orderid,
-        COALESCE(CAST(ie.linkorderid                   AS STRING), '') AS _linkorderid
+        COALESCE(CAST(ie.originalrate                  AS STRING), '') AS _originalrate
     FROM `physionet-data`.mimiciv_3_1_icu.inputevents ie
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
@@ -921,30 +854,6 @@ q_inputevents_all AS (
            'originalrate', NULL, _ru, _originalrate, _var_type(_originalrate),
            '0', NULL, NULL, 17
     FROM q_inputevents_base
-    UNION ALL
-    -- ⑱ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 18
-    FROM q_inputevents_base
-    UNION ALL
-    -- ⑲ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 19
-    FROM q_inputevents_base
-    UNION ALL
-    -- ⑳ orderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
-           '0', NULL, NULL, 20
-    FROM q_inputevents_base
-    UNION ALL
-    -- ㉑ linkorderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
-           '0', NULL, NULL, 21
-    FROM q_inputevents_base
 ),
 
 -- ── icu.outputevents ─────────────────────────────────────────────
@@ -957,9 +866,7 @@ q_outputevents_base AS (
         CAST(oe.charttime AS STRING)                       AS _ev,
         CAST(oe.valueuom  AS STRING)                       AS _vu,
         COALESCE(CAST(oe.`value`      AS STRING), '')      AS _val,
-        COALESCE(CAST(oe.storetime    AS STRING), '')      AS _storetime,
-        COALESCE(CAST(oe.stay_id      AS STRING), '')      AS _stay_id,
-        COALESCE(CAST(oe.caregiver_id AS STRING), '')      AS _caregiver_id
+        COALESCE(CAST(oe.storetime    AS STRING), '')      AS _storetime
     FROM `physionet-data`.mimiciv_3_1_icu.outputevents oe
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON oe.itemid = di.itemid
 ),
@@ -974,18 +881,6 @@ q_outputevents_all AS (
     SELECT _pk, subject_id, hadm_id, '',
            'storetime', NULL, NULL, _storetime, _var_type(_storetime),
            '0', 'date', NULL, 2
-    FROM q_outputevents_base
-    UNION ALL
-    -- ③ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 3
-    FROM q_outputevents_base
-    UNION ALL
-    -- ④ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 4
     FROM q_outputevents_base
 ),
 
@@ -1009,11 +904,7 @@ q_procedureevents_base AS (
         COALESCE(CAST(pe.patientweight              AS STRING), '') AS _patientweight,
         COALESCE(CAST(pe.isopenbag                  AS STRING), '') AS _isopenbag,
         COALESCE(CAST(pe.continueinnextdept         AS STRING), '') AS _continueinnextdept,
-        COALESCE(CAST(pe.statusdescription          AS STRING), '') AS _statusdescription,
-        COALESCE(CAST(pe.stay_id                    AS STRING), '') AS _stay_id,
-        COALESCE(CAST(pe.caregiver_id               AS STRING), '') AS _caregiver_id,
-        COALESCE(CAST(pe.orderid                    AS STRING), '') AS _orderid,
-        COALESCE(CAST(pe.linkorderid                AS STRING), '') AS _linkorderid
+        COALESCE(CAST(pe.statusdescription          AS STRING), '') AS _statusdescription
     FROM `physionet-data`.mimiciv_3_1_icu.procedureevents pe
     LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON pe.itemid = di.itemid
 ),
@@ -1088,30 +979,6 @@ q_procedureevents_all AS (
     SELECT _pk, subject_id, hadm_id, '',
            'statusdescription', NULL, NULL, _statusdescription, 'string',
            '1', NULL, NULL, 12
-    FROM q_procedureevents_base
-    UNION ALL
-    -- ⑬ stay_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'stay_id', NULL, NULL, _stay_id, _var_type(_stay_id),
-           '0', NULL, NULL, 13
-    FROM q_procedureevents_base
-    UNION ALL
-    -- ⑭ caregiver_id
-    SELECT _pk, subject_id, hadm_id, '',
-           'caregiver_id', NULL, NULL, _caregiver_id, _var_type(_caregiver_id),
-           '0', NULL, NULL, 14
-    FROM q_procedureevents_base
-    UNION ALL
-    -- ⑮ orderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'orderid', NULL, NULL, _orderid, _var_type(_orderid),
-           '0', NULL, NULL, 15
-    FROM q_procedureevents_base
-    UNION ALL
-    -- ⑯ linkorderid
-    SELECT _pk, subject_id, hadm_id, '',
-           'linkorderid', NULL, NULL, _linkorderid, _var_type(_linkorderid),
-           '0', NULL, NULL, 16
     FROM q_procedureevents_base
 ),
 -- ════════════════════════════════════════════════════════════════════
@@ -1326,8 +1193,8 @@ SELECT _pk, '', 'EMAR_DETAIL', Variable_name, NULL, raw_val,
        _var_type(raw_val), _is_cat(Variable_name), '', '', '',
        CAST(subject_id AS STRING), '', '',
        -- Rule 7: 약물명/투여 정보; Rule 3: product_code → medical_code
+       -- product_description: 약물명+농도+용량+제형이 혼재 → Mapping_info 미부여(NULL)
        CASE Variable_name
-           WHEN 'product_description' THEN 'prescription'
            WHEN 'product_code'        THEN 'medical_code'
            WHEN 'dose_due'            THEN 'prescription'
            WHEN 'dose_given'          THEN 'prescription'
@@ -1335,7 +1202,6 @@ SELECT _pk, '', 'EMAR_DETAIL', Variable_name, NULL, raw_val,
            WHEN 'route'               THEN 'prescription'
            ELSE NULL END AS Mapping_info_1,
        CASE Variable_name
-           WHEN 'product_description' THEN 'drug'
            WHEN 'dose_due'            THEN 'prescription_info'
            WHEN 'dose_given'          THEN 'prescription_info'
            WHEN 'infusion_rate'       THEN 'prescription_info'
@@ -1363,6 +1229,7 @@ SELECT _pk, '', 'MICROBIOLOGYEVENTS', Variable_name,
        raw_val, NULL, _var_type(raw_val), _is_cat(Variable_name), '', '', '',
        CAST(subject_id AS STRING), CAST(hadm_id AS STRING), '',
        -- Rule 4: 미생물 검사 결과값 → event/lab_event; Rule 5: 날짜
+       -- dilution_text/comparison/value: 비교연산자+수치 혼재 → Mapping_info 미부여(NULL)
        CASE Variable_name
            WHEN 'storedate'           THEN 'date'
            WHEN 'storetime'           THEN 'date'
@@ -1370,9 +1237,6 @@ SELECT _pk, '', 'MICROBIOLOGYEVENTS', Variable_name,
            WHEN 'org_name'            THEN 'event'
            WHEN 'quantity'            THEN 'event'
            WHEN 'ab_name'             THEN 'event'
-           WHEN 'dilution_text'       THEN 'event'
-           WHEN 'dilution_comparison' THEN 'event'
-           WHEN 'dilution_value'      THEN 'event'
            WHEN 'interpretation'      THEN 'event'
            ELSE NULL END AS Mapping_info_1,
        CASE Variable_name
@@ -1380,9 +1244,6 @@ SELECT _pk, '', 'MICROBIOLOGYEVENTS', Variable_name,
            WHEN 'org_name'            THEN 'lab_event'
            WHEN 'quantity'            THEN 'lab_event'
            WHEN 'ab_name'             THEN 'lab_event'
-           WHEN 'dilution_text'       THEN 'lab_event'
-           WHEN 'dilution_comparison' THEN 'lab_event'
-           WHEN 'dilution_value'      THEN 'lab_event'
            WHEN 'interpretation'      THEN 'lab_event'
            ELSE NULL END AS Mapping_info_2
 FROM u_micro WHERE raw_val IS NOT NULL
@@ -1618,6 +1479,7 @@ SELECT _pk, '', 'TRIAGE', Variable_name, NULL, raw_val, NULL,
        _var_type(raw_val), _is_cat(Variable_name), '', '', '',
        CAST(subject_id AS STRING), '', '',
        -- Rule 4: 활력징후 → event/chart_event; Rule 6: chiefcomplaint → diagnosis
+       -- acuity: 응급 중증도(ESI 단계) → event/chart_event
        CASE Variable_name
            WHEN 'temperature'    THEN 'event'
            WHEN 'heartrate'      THEN 'event'
@@ -1626,6 +1488,7 @@ SELECT _pk, '', 'TRIAGE', Variable_name, NULL, raw_val, NULL,
            WHEN 'sbp'            THEN 'event'
            WHEN 'dbp'            THEN 'event'
            WHEN 'pain'           THEN 'event'
+           WHEN 'acuity'         THEN 'event'
            WHEN 'chiefcomplaint' THEN 'diagnosis'
            ELSE NULL END AS Mapping_info_1,
        CASE Variable_name
@@ -1636,6 +1499,7 @@ SELECT _pk, '', 'TRIAGE', Variable_name, NULL, raw_val, NULL,
            WHEN 'sbp'         THEN 'chart_event'
            WHEN 'dbp'         THEN 'chart_event'
            WHEN 'pain'        THEN 'chart_event'
+           WHEN 'acuity'      THEN 'chart_event'
            ELSE NULL END AS Mapping_info_2
 FROM u_triage WHERE raw_val IS NOT NULL
 UNION ALL
@@ -1664,4 +1528,6 @@ SELECT _pk, '', 'VITALSIGN', Variable_name, _ev, raw_val, NULL,
            WHEN 'pain'        THEN 'chart_event'
            ELSE NULL END AS Mapping_info_2
 FROM u_vitalsign
+
+ORDER BY Original_table_name, Patient_id, Primary_key
 ;
