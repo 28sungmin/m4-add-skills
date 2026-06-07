@@ -1,8 +1,13 @@
 ---
-name: mimic-to-quiq
+name: quiq
 description: Convert MIMIC-IV clinical data into QUIQ (Quality Intelligence Unified Query) long-format table. Use when transforming MIMIC-IV tables to QUIQ format for data quality assessment, when applying QUIQ Mapping_info rules to MIMIC-IV variables, or when building a standardized long-format dataset from MIMIC-IV for quality management programs.
 tier: community
 category: system
+parameters:
+  bq_project:
+    description: BigQuery project ID where MIMIC-IV data is stored. Varies by institution — PhysioNet public access uses 'physionet-data'; institutions with their own copy use their own project ID (e.g. 'cmi-lab').
+    default: physionet-data
+    type: string
 ---
 
 # MIMIC-IV → QUIQ Format Conversion
@@ -115,6 +120,11 @@ set_dataset("mimic-iv")
 
 with open("scripts/bigquery.sql") as f:
     sql = f.read()
+
+# parameters.bq_project: BigQuery project ID where MIMIC-IV data is stored
+# Change to your institution's project ID if you host your own copy of MIMIC-IV
+bq_project = "physionet-data"  # e.g. "cmi-lab" for CMI lab
+sql = sql.replace("{bq_project}", bq_project)
 
 df = execute_query(sql)
 # Returns pd.DataFrame with all QUIQ columns

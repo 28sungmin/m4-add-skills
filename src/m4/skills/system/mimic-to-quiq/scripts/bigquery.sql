@@ -102,7 +102,7 @@ t_admissions AS (
         COALESCE(CAST(edregtime          AS STRING), '') AS edregtime,
         COALESCE(CAST(edouttime          AS STRING), '') AS edouttime,
         COALESCE(CAST(hospital_expire_flag AS STRING), '') AS hospital_expire_flag
-    FROM `physionet-data`.mimiciv_3_1_hosp.admissions
+    FROM `{bq_project}`.mimiciv_3_1_hosp.admissions
 ),
 u_admissions AS (
     SELECT * FROM t_admissions
@@ -123,7 +123,7 @@ t_patients AS (
         COALESCE(CAST(anchor_year      AS STRING), '') AS anchor_year,
         COALESCE(CAST(anchor_year_group AS STRING), '') AS anchor_year_group,
         COALESCE(CAST(dod              AS STRING), '') AS dod
-    FROM `physionet-data`.mimiciv_3_1_hosp.patients
+    FROM `{bq_project}`.mimiciv_3_1_hosp.patients
 ),
 u_patients AS (
     SELECT * FROM t_patients
@@ -138,7 +138,7 @@ t_transfers AS (
         COALESCE(CAST(careunit  AS STRING), '') AS careunit,
         COALESCE(CAST(intime    AS STRING), '') AS intime,
         COALESCE(CAST(outtime   AS STRING), '') AS outtime
-    FROM `physionet-data`.mimiciv_3_1_hosp.transfers
+    FROM `{bq_project}`.mimiciv_3_1_hosp.transfers
 ),
 u_transfers AS (
     SELECT * FROM t_transfers
@@ -153,7 +153,7 @@ t_omr AS (
         COALESCE(CAST(seq_num      AS STRING), '') AS seq_num,
         COALESCE(CAST(result_name  AS STRING), '') AS result_name,
         COALESCE(CAST(result_value AS STRING), '') AS result_value
-    FROM `physionet-data`.mimiciv_3_1_hosp.omr
+    FROM `{bq_project}`.mimiciv_3_1_hosp.omr
 ),
 u_omr AS (
     SELECT * FROM t_omr
@@ -169,7 +169,7 @@ t_drgcodes AS (
         COALESCE(CAST(description   AS STRING), '') AS description,
         COALESCE(CAST(drg_severity  AS STRING), '') AS drg_severity,
         COALESCE(CAST(drg_mortality AS STRING), '') AS drg_mortality
-    FROM `physionet-data`.mimiciv_3_1_hosp.drgcodes
+    FROM `{bq_project}`.mimiciv_3_1_hosp.drgcodes
 ),
 u_drgcodes AS (
     SELECT * FROM t_drgcodes
@@ -186,7 +186,7 @@ t_emar AS (
         COALESCE(CAST(event_txt   AS STRING), '') AS event_txt,
         COALESCE(CAST(scheduletime AS STRING), '') AS scheduletime,
         COALESCE(CAST(storetime   AS STRING), '') AS storetime
-    FROM `physionet-data`.mimiciv_3_1_hosp.emar
+    FROM `{bq_project}`.mimiciv_3_1_hosp.emar
 ),
 u_emar AS (
     SELECT * FROM t_emar
@@ -225,7 +225,7 @@ t_emar_detail AS (
         COALESCE(CAST(side                              AS STRING), '') AS side,
         COALESCE(CAST(`site`                            AS STRING), '') AS `site`,
         COALESCE(CAST(non_formulary_visual_verification AS STRING), '') AS non_formulary_visual_verification
-    FROM `physionet-data`.mimiciv_3_1_hosp.emar_detail
+    FROM `{bq_project}`.mimiciv_3_1_hosp.emar_detail
 ),
 u_emar_detail AS (
     SELECT * FROM t_emar_detail
@@ -247,7 +247,7 @@ t_hcpcsevents AS (
         COALESCE(CAST(hcpcs_cd         AS STRING), '') AS hcpcs_cd,
         COALESCE(CAST(seq_num          AS STRING), '') AS seq_num,
         COALESCE(CAST(short_description AS STRING), '') AS short_description
-    FROM `physionet-data`.mimiciv_3_1_hosp.hcpcsevents
+    FROM `{bq_project}`.mimiciv_3_1_hosp.hcpcsevents
 ),
 u_hcpcsevents AS (
     SELECT * FROM t_hcpcsevents
@@ -274,7 +274,7 @@ t_micro AS (
         COALESCE(CAST(dilution_value     AS STRING), '') AS dilution_value,
         COALESCE(CAST(interpretation     AS STRING), '') AS interpretation,
         COALESCE(CAST(comments           AS STRING), '') AS comments
-    FROM `physionet-data`.mimiciv_3_1_hosp.microbiologyevents
+    FROM `{bq_project}`.mimiciv_3_1_hosp.microbiologyevents
 ),
 u_micro AS (
     SELECT * FROM t_micro
@@ -314,7 +314,7 @@ t_pharmacy AS (
         COALESCE(CAST(expirationdate  AS STRING), '') AS expirationdate,
         COALESCE(CAST(dispensation    AS STRING), '') AS dispensation,
         COALESCE(CAST(fill_quantity   AS STRING), '') AS fill_quantity
-    FROM `physionet-data`.mimiciv_3_1_hosp.pharmacy
+    FROM `{bq_project}`.mimiciv_3_1_hosp.pharmacy
 ),
 u_pharmacy AS (
     SELECT * FROM t_pharmacy
@@ -335,7 +335,7 @@ t_poe AS (
         COALESCE(CAST(order_subtype    AS STRING), '') AS order_subtype,
         COALESCE(CAST(transaction_type AS STRING), '') AS transaction_type,
         COALESCE(CAST(order_status     AS STRING), '') AS order_status
-    FROM `physionet-data`.mimiciv_3_1_hosp.poe
+    FROM `{bq_project}`.mimiciv_3_1_hosp.poe
 ),
 u_poe AS (
     SELECT * FROM t_poe
@@ -349,7 +349,7 @@ t_poe_detail AS (
         COALESCE(CAST(poe_seq     AS STRING), '') AS poe_seq,
         COALESCE(CAST(field_name  AS STRING), '') AS field_name,
         COALESCE(CAST(field_value AS STRING), '') AS field_value
-    FROM `physionet-data`.mimiciv_3_1_hosp.poe_detail
+    FROM `{bq_project}`.mimiciv_3_1_hosp.poe_detail
 ),
 u_poe_detail AS (
     SELECT * FROM t_poe_detail
@@ -377,7 +377,7 @@ t_prescriptions AS (
         COALESCE(CAST(form_val_disp    AS STRING), '') AS form_val_disp,
         COALESCE(CAST(doses_per_24_hrs AS STRING), '') AS doses_per_24_hrs,
         COALESCE(CAST(`route`          AS STRING), '') AS `route`
-    FROM `physionet-data`.mimiciv_3_1_hosp.prescriptions
+    FROM `{bq_project}`.mimiciv_3_1_hosp.prescriptions
 ),
 u_prescriptions AS (
     SELECT * FROM t_prescriptions
@@ -394,7 +394,7 @@ t_services AS (
         COALESCE(CAST(transfertime  AS STRING), '') AS transfertime,
         COALESCE(CAST(prev_service  AS STRING), '') AS prev_service,
         COALESCE(CAST(curr_service  AS STRING), '') AS curr_service
-    FROM `physionet-data`.mimiciv_3_1_hosp.services
+    FROM `{bq_project}`.mimiciv_3_1_hosp.services
 ),
 u_services AS (
     SELECT * FROM t_services
@@ -415,7 +415,7 @@ t_diagnoses_icd AS (
         COALESCE(CAST(seq_num     AS STRING), '') AS seq_num,
         COALESCE(CAST(icd_code    AS STRING), '') AS icd_code,
         COALESCE(CAST(icd_version AS STRING), '') AS icd_version
-    FROM `physionet-data`.mimiciv_3_1_hosp.diagnoses_icd
+    FROM `{bq_project}`.mimiciv_3_1_hosp.diagnoses_icd
 ),
 u_diagnoses_icd AS (
     SELECT * FROM t_diagnoses_icd
@@ -430,7 +430,7 @@ t_procedures_icd AS (
         COALESCE(CAST(seq_num     AS STRING), '') AS seq_num,
         COALESCE(CAST(icd_code    AS STRING), '') AS icd_code,
         COALESCE(CAST(icd_version AS STRING), '') AS icd_version
-    FROM `physionet-data`.mimiciv_3_1_hosp.procedures_icd
+    FROM `{bq_project}`.mimiciv_3_1_hosp.procedures_icd
 ),
 u_procedures_icd AS (
     SELECT * FROM t_procedures_icd
@@ -481,8 +481,8 @@ q_labevents_base AS (
         COALESCE(CAST(le.flag               AS STRING), '') AS _flag,
         COALESCE(CAST(le.`priority`         AS STRING), '') AS _priority,
         COALESCE(CAST(le.comments           AS STRING), '') AS _comments,
-    FROM `physionet-data`.mimiciv_3_1_hosp.labevents le
-    LEFT JOIN `physionet-data`.mimiciv_3_1_hosp.d_labitems di ON le.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_hosp.labevents le
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_hosp.d_labitems di ON le.itemid = di.itemid
 ),
 
 -- ── hosp.labevents (long: 7컬럼 전개, subject_id 정렬) ───────────
@@ -567,8 +567,8 @@ q_chartevents_base AS (
         COALESCE(CAST(ce.storetime    AS STRING), '')         AS _storetime,
         COALESCE(CAST(ce.valuenum     AS STRING), '')         AS _valuenum,
         COALESCE(CAST(ce.warning      AS STRING), '')         AS _warning,
-    FROM `physionet-data`.mimiciv_3_1_icu.chartevents ce
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ce.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.chartevents ce
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON ce.itemid = di.itemid
 ),
 q_chartevents_all AS (
     -- ① value (메인 측정값)
@@ -611,8 +611,8 @@ q_datetimeevents_base AS (
         COALESCE(CAST(de.`value`      AS STRING), '')         AS _val,
         COALESCE(CAST(de.storetime    AS STRING), '')         AS _storetime,
         COALESCE(CAST(de.warning      AS STRING), '')         AS _warning
-    FROM `physionet-data`.mimiciv_3_1_icu.datetimeevents de
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON de.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.datetimeevents de
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON de.itemid = di.itemid
 ),
 q_datetimeevents_all AS (
     -- ① value (메인 측정값 - ICU charted datetime: Rule 4 chart_event)
@@ -643,7 +643,7 @@ t_icustays AS (
         COALESCE(CAST(intime         AS STRING), '') AS intime,
         COALESCE(CAST(outtime        AS STRING), '') AS outtime,
         COALESCE(CAST(los            AS STRING), '') AS los
-    FROM `physionet-data`.mimiciv_3_1_icu.icustays
+    FROM `{bq_project}`.mimiciv_3_1_icu.icustays
 ),
 u_icustays AS (
     SELECT * FROM t_icustays
@@ -668,8 +668,8 @@ q_ingredientevents_base AS (
         COALESCE(CAST(ie.statusdescription AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount    AS STRING), '') AS _originalamount,
         COALESCE(CAST(ie.originalrate      AS STRING), '') AS _originalrate
-    FROM `physionet-data`.mimiciv_3_1_icu.ingredientevents ie
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.ingredientevents ie
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
 q_ingredientevents_all AS (
     -- ① amount (메인 측정값 - I&O event: Rule 4, map2=NULL)
@@ -749,8 +749,8 @@ q_inputevents_base AS (
         COALESCE(CAST(ie.statusdescription             AS STRING), '') AS _statusdescription,
         COALESCE(CAST(ie.originalamount                AS STRING), '') AS _originalamount,
         COALESCE(CAST(ie.originalrate                  AS STRING), '') AS _originalrate
-    FROM `physionet-data`.mimiciv_3_1_icu.inputevents ie
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.inputevents ie
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON ie.itemid = di.itemid
 ),
 q_inputevents_all AS (
     -- ① amount (메인 측정값 - I&O event: Rule 4, map2=NULL)
@@ -867,8 +867,8 @@ q_outputevents_base AS (
         CAST(oe.valueuom  AS STRING)                       AS _vu,
         COALESCE(CAST(oe.`value`      AS STRING), '')      AS _val,
         COALESCE(CAST(oe.storetime    AS STRING), '')      AS _storetime
-    FROM `physionet-data`.mimiciv_3_1_icu.outputevents oe
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON oe.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.outputevents oe
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON oe.itemid = di.itemid
 ),
 q_outputevents_all AS (
     -- ① value (메인 측정값 - I&O event: Rule 4, map2=NULL)
@@ -905,8 +905,8 @@ q_procedureevents_base AS (
         COALESCE(CAST(pe.isopenbag                  AS STRING), '') AS _isopenbag,
         COALESCE(CAST(pe.continueinnextdept         AS STRING), '') AS _continueinnextdept,
         COALESCE(CAST(pe.statusdescription          AS STRING), '') AS _statusdescription
-    FROM `physionet-data`.mimiciv_3_1_icu.procedureevents pe
-    LEFT JOIN `physionet-data`.mimiciv_3_1_icu.d_items di ON pe.itemid = di.itemid
+    FROM `{bq_project}`.mimiciv_3_1_icu.procedureevents pe
+    LEFT JOIN `{bq_project}`.mimiciv_3_1_icu.d_items di ON pe.itemid = di.itemid
 ),
 q_procedureevents_all AS (
     -- ① value (메인 측정값 - ICU 처치: Rule 8 procedure)
@@ -993,7 +993,7 @@ t_diagnosis AS (
         COALESCE(CAST(icd_code     AS STRING), '') AS icd_code,
         COALESCE(CAST(icd_version  AS STRING), '') AS icd_version,
         COALESCE(CAST(icd_title    AS STRING), '') AS icd_title
-    FROM `physionet-data`.mimiciv_ed.diagnosis
+    FROM `{bq_project}`.mimiciv_ed.diagnosis
 ),
 u_diagnosis AS (
     SELECT * FROM t_diagnosis
@@ -1010,7 +1010,7 @@ t_edstays AS (
         COALESCE(CAST(race              AS STRING), '') AS race,
         COALESCE(CAST(arrival_transport AS STRING), '') AS arrival_transport,
         COALESCE(CAST(disposition       AS STRING), '') AS disposition
-    FROM `physionet-data`.mimiciv_ed.edstays
+    FROM `{bq_project}`.mimiciv_ed.edstays
 ),
 u_edstays AS (
     SELECT * FROM t_edstays
@@ -1028,7 +1028,7 @@ t_medrecon AS (
         COALESCE(CAST(etc_rn       AS STRING), '') AS etc_rn,
         COALESCE(CAST(etccode      AS STRING), '') AS etccode,
         COALESCE(CAST(etcdescription AS STRING), '') AS etcdescription
-    FROM `physionet-data`.mimiciv_ed.medrecon
+    FROM `{bq_project}`.mimiciv_ed.medrecon
 ),
 u_medrecon AS (
     SELECT * FROM t_medrecon
@@ -1044,7 +1044,7 @@ t_pyxis AS (
         COALESCE(CAST(`name`     AS STRING), '') AS `name`,
         COALESCE(CAST(gsn_rn     AS STRING), '') AS gsn_rn,
         COALESCE(CAST(gsn        AS STRING), '') AS gsn
-    FROM `physionet-data`.mimiciv_ed.pyxis
+    FROM `{bq_project}`.mimiciv_ed.pyxis
 ),
 u_pyxis AS (
     SELECT * FROM t_pyxis
@@ -1064,7 +1064,7 @@ t_triage AS (
         COALESCE(CAST(pain           AS STRING), '') AS pain,
         COALESCE(CAST(acuity         AS STRING), '') AS acuity,
         COALESCE(CAST(chiefcomplaint AS STRING), '') AS chiefcomplaint
-    FROM `physionet-data`.mimiciv_ed.triage
+    FROM `{bq_project}`.mimiciv_ed.triage
 ),
 u_triage AS (
     SELECT * FROM t_triage
@@ -1084,7 +1084,7 @@ t_vitalsign AS (
         COALESCE(CAST(dbp         AS STRING), '') AS dbp,
         COALESCE(CAST(rhythm      AS STRING), '') AS rhythm,
         COALESCE(CAST(pain        AS STRING), '') AS pain
-    FROM `physionet-data`.mimiciv_ed.vitalsign
+    FROM `{bq_project}`.mimiciv_ed.vitalsign
 ),
 u_vitalsign AS (
     SELECT * FROM t_vitalsign
