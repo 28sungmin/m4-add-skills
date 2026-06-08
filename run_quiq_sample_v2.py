@@ -15,7 +15,7 @@ ids_str = ', '.join(str(x) for x in sample_ids)
 print(f"Subject IDs: {sample_ids}")
 
 # SQL 읽기
-sql_path = '/Users/leesungmin/Desktop/m4/src/m4/skills/system/mimic-to-quiq/scripts/bigquery.sql'
+sql_path = '/Users/leesungmin/Desktop/m4/src/m4/skills/system/quiq/scripts/bigquery.sql'
 with open(sql_path) as f:
     sql = f.read()
 
