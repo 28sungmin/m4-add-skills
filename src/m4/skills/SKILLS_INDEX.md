@@ -68,6 +68,17 @@ This directory contains skills for the M4 framework, covering clinical research 
 |-------|-------------|
 | [quiq](lydus/quiq/SKILL.md) | Convert MIMIC-IV tables to QUIQ long-format for LYDUS data quality assessment (가이드라인 §1.5) |
 | [class-diversity](lydus/class-diversity/SKILL.md) | Calculate Simpson class diversity per categorical variable in a QUIQ table |
+| [classification](lydus/classification/SKILL.md) | Calculate classification metrics (Accuracy, Precision, Recall, F1, AUROC) per variable in a QUIQ table with Ground_truth labels |
+| [completeness](lydus/completeness/SKILL.md) | Calculate data completeness (non-null rate) per variable in a QUIQ table |
+| [cross-sectional-consistency](lydus/cross-sectional-consistency/SKILL.md) | Calculate cross-sectional consistency using LLM (OpenAI) to group semantically equivalent values per variable |
+| [date-validity](lydus/date-validity/SKILL.md) | Validate date values in a QUIQ table (Event_date + Mapping_info_1=date rows) using standard parsing, Korean formats, and optional LLM fallback |
+| [fidelity](lydus/fidelity/SKILL.md) | Calculate structured fidelity (per-patient recording frequency) for event/diagnosis/prescription/procedure variables in a QUIQ table |
+| [format-validity](lydus/format-validity/SKILL.md) | Validate format of medical codes (ICD-9/10/11, SNOMED-CT, RxNorm, LOINC, ATC) in a QUIQ table using regex, with optional LLM fallback for unknown code types |
+| [instance-diversity](lydus/instance-diversity/SKILL.md) | Calculate instance diversity and Gini-Simpson index per (variable, value) in a QUIQ table — measures how evenly distributed patients are across occurrences of each clinical value |
+| [logical-accuracy](lydus/logical-accuracy/SKILL.md) | Detect logical outliers in clinical variables using Quantile Regression + GBR + Autoencoder (numeric) or OneClassSVM + IsolationForest + Autoencoder (categorical); requires OpenAI API |
+| [note-accuracy](lydus/note-accuracy/SKILL.md) | Evaluate accuracy of unstructured clinical notes (note_clinical) and radiology reports (note_rad) using LLM error detection; requires OpenAI API |
+| [note-fidelity](lydus/note-fidelity/SKILL.md) | Evaluate completeness of clinical notes and radiology reports by checking whether required template items are mentioned; requires OpenAI API |
+| [preciseness](lydus/preciseness/SKILL.md) | Calculate decimal-place consistency of numeric variables using iterative scale detection and Gini-Simpson last-digit diversity; no API key required |
 
 ## System Skills
 
