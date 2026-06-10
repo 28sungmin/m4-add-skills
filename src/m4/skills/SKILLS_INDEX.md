@@ -60,6 +60,14 @@ This directory contains skills for the M4 framework, covering clinical research 
 | [clinical-research-analysis-framework](clinical/clinical-research-analysis-framework/SKILL.md) | Guided statistical/ML analysis workflow with structured consultation and audit trails |
 | [equiflow](clinical/equiflow/SKILL.md) | Equity-focused cohort flow diagrams with SMD bias detection (Ellen 2024) |
 
+## Lydus Skills
+
+### Data Quality
+
+| Skill | Description |
+|-------|-------------|
+| [quiq](lydus/quiq/SKILL.md) | Convert MIMIC-IV tables to QUIQ long-format for LYDUS data quality assessment (가이드라인 §1.5) |
+
 ## System Skills
 
 ### Data Structure
@@ -68,12 +76,6 @@ This directory contains skills for the M4 framework, covering clinical research 
 |-------|-------------|
 | [mimic-table-relationships](system/mimic-table-relationships/SKILL.md) | MIMIC-IV table relationships and join patterns |
 | [mimic-eicu-mapping](system/mimic-eicu-mapping/SKILL.md) | Mapping between MIMIC-IV and eICU databases |
-
-### Data Transformation
-
-| Skill | Description |
-|-------|-------------|
-| [mimic-to-quiq](system/mimic-to-quiq/SKILL.md) | Convert MIMIC-IV tables to QUIQ long-format for data quality assessment (가이드라인 §1.5) |
 
 ### M4 Framework
 

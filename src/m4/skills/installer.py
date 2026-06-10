@@ -7,7 +7,7 @@ from pathlib import Path
 from m4.config import logger
 
 VALID_TIERS = {"validated", "expert", "community"}
-VALID_CATEGORIES = {"clinical", "system"}
+VALID_CATEGORIES = {"clinical", "system", "lydus"}
 
 
 @dataclass

@@ -2,7 +2,7 @@
 name: quiq
 description: Convert MIMIC-IV clinical data into QUIQ (Quality Intelligence Unified Query) long-format table. Use when transforming MIMIC-IV tables to QUIQ format for data quality assessment, when applying QUIQ Mapping_info rules to MIMIC-IV variables, or when building a standardized long-format dataset from MIMIC-IV for quality management programs.
 tier: community
-category: system
+category: lydus
 parameters:
   bq_project:
     description: BigQuery project ID where MIMIC-IV data is stored. Varies by institution — PhysioNet public access uses 'physionet-data'; institutions with their own copy use their own project ID (e.g. 'cmi-lab').
@@ -114,23 +114,72 @@ The complete BigQuery SQL is in `scripts/bigquery.sql`. Key BigQuery differences
 ### How to run with M4 MCP
 
 ```python
-from m4 import set_dataset, execute_query
+import os
+from google.cloud import bigquery
 
-set_dataset("mimic-iv")
-
-with open("scripts/bigquery.sql") as f:
+# NOTE: m4.execute_query blocks multi-statement SQL (SecurityError).
+# This SQL uses CREATE TEMP FUNCTION → must use google.cloud.bigquery directly.
+skill_dir = os.path.dirname(os.path.abspath(__file__))
+with open(os.path.join(skill_dir, "scripts/bigquery.sql")) as f:
     sql = f.read()
 
 # parameters.bq_project: BigQuery project ID where MIMIC-IV data is stored
 # Change to your institution's project ID if you host your own copy of MIMIC-IV
 bq_project = "physionet-data"  # e.g. "cmi-lab" for CMI lab
+bq_billing_project = bq_project + "-492906"  # billing project (may differ)
 sql = sql.replace("{bq_project}", bq_project)
 
-df = execute_query(sql)
+# Institution-specific dataset name overrides (if needed)
+# e.g. cmi-lab uses MIMIC_IV_ED instead of mimiciv_ed
+# sql = sql.replace("mimiciv_ed.", "MIMIC_IV_ED.")
+
+# Optional: filter by patient cohort (subject_id list)
+# Wraps each source table in a subquery — avoids full table scans
+# PIDS = "(10000032, 10000068, 10001217)"  # comma-separated subject_ids
+# wide_tables = [
+#     "mimiciv_3_1_hosp.admissions", "mimiciv_3_1_hosp.patients",
+#     "mimiciv_3_1_hosp.transfers", "mimiciv_3_1_hosp.omr",
+#     "mimiciv_3_1_hosp.drgcodes", "mimiciv_3_1_hosp.emar",
+#     "mimiciv_3_1_hosp.emar_detail", "mimiciv_3_1_hosp.hcpcsevents",
+#     "mimiciv_3_1_hosp.microbiologyevents", "mimiciv_3_1_hosp.pharmacy",
+#     "mimiciv_3_1_hosp.poe", "mimiciv_3_1_hosp.poe_detail",
+#     "mimiciv_3_1_hosp.prescriptions", "mimiciv_3_1_hosp.services",
+#     "mimiciv_3_1_hosp.diagnoses_icd", "mimiciv_3_1_hosp.procedures_icd",
+#     "mimiciv_3_1_icu.icustays",
+#     "MIMIC_IV_ED.diagnosis", "MIMIC_IV_ED.edstays",
+#     "MIMIC_IV_ED.medrecon", "MIMIC_IV_ED.pyxis",
+#     "MIMIC_IV_ED.triage", "MIMIC_IV_ED.vitalsign",
+# ]
+# for tbl in wide_tables:
+#     sql = sql.replace(
+#         f"    FROM `{bq_project}`.{tbl}\n",
+#         f"    FROM (SELECT * FROM `{bq_project}`.{tbl} WHERE subject_id IN {PIDS})\n"
+#     )
+# for tbl, alias in [
+#     ("mimiciv_3_1_hosp.labevents", "le"),
+#     ("mimiciv_3_1_icu.chartevents", "ce"),
+#     ("mimiciv_3_1_icu.datetimeevents", "de"),
+#     ("mimiciv_3_1_icu.ingredientevents", "ie"),
+#     ("mimiciv_3_1_icu.inputevents", "ie"),
+#     ("mimiciv_3_1_icu.outputevents", "oe"),
+#     ("mimiciv_3_1_icu.procedureevents", "pe"),
+# ]:
+#     sql = sql.replace(
+#         f"    FROM `{bq_project}`.{tbl} {alias}\n",
+#         f"    FROM (SELECT * FROM `{bq_project}`.{tbl} WHERE subject_id IN {PIDS}) {alias}\n"
+#     )
+
+client = bigquery.Client(project=bq_billing_project)
+df = client.query(sql).to_dataframe()
 # Returns pd.DataFrame with all QUIQ columns
+
+# Save to CSV
+output_path = "quiq_output.csv"
+df.to_csv(output_path, index=False, encoding="utf-8-sig")
+print(f"Saved {len(df):,} rows → {output_path}")
 ```
 
-> **Note**: The SQL uses `CREATE TEMP FUNCTION` — BigQuery scripting mode must be enabled. M4's `execute_query()` supports multi-statement scripts.
+> **Note**: The SQL uses `CREATE TEMP FUNCTION` (multi-statement). `m4.execute_query()` blocks multi-statement SQL with SecurityError — use `google.cloud.bigquery.Client` directly instead.
 
 ## Critical Implementation Notes
 
