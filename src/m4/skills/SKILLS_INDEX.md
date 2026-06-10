@@ -79,6 +79,12 @@ This directory contains skills for the M4 framework, covering clinical research 
 | [note-accuracy](lydus/note-accuracy/SKILL.md) | Evaluate accuracy of unstructured clinical notes (note_clinical) and radiology reports (note_rad) using LLM error detection; requires OpenAI API |
 | [note-fidelity](lydus/note-fidelity/SKILL.md) | Evaluate completeness of clinical notes and radiology reports by checking whether required template items are mentioned; requires OpenAI API |
 | [preciseness](lydus/preciseness/SKILL.md) | Calculate decimal-place consistency of numeric variables using iterative scale detection and Gini-Simpson last-digit diversity; no API key required |
+| [range-validity](lydus/range-validity/SKILL.md) | Detect IQR outliers (1.5×IQR Tukey fence) in numeric variables and compute Range Validity (%); SQL (DuckDB PERCENTILE_CONT) + Python with boxplots |
+| [sentence-diversity](lydus/sentence-diversity/SKILL.md) | Measure diversity of verb-containing sentences in clinical notes using NLTK POS tagging; computes unique/total ratio and top-5/10/20% coverage scores |
+| [sequence-validity](lydus/sequence-validity/SKILL.md) | Validate chronological ordering of date variable pairs (start ≤ end) in a QUIQ table; LLM auto-identifies pairs, requires OpenAI API |
+| [time-series-consistency](lydus/time-series-consistency/SKILL.md) | Detect temporal distribution shifts (change points) across years using GradientBoosting AUROC + SHAP; no API key required |
+| [vocabulary-diversity](lydus/vocabulary-diversity/SKILL.md) | Measure diversity of noun words in clinical notes using NLTK POS tagging; computes unique/total noun ratio and top-5/10/20% coverage scores |
+| [bias-detection](lydus/bias-detection/SKILL.md) | Detect demographic bias by running all 16 LYDUS quality metrics per Sex/Race/Age group and computing GDI (Group Disparity Index); requires OpenAI API |
 
 ## System Skills
 
