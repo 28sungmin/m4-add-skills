@@ -67,6 +67,7 @@ This directory contains skills for the M4 framework, covering clinical research 
 | Skill | Description |
 |-------|-------------|
 | [quiq](lydus/quiq/SKILL.md) | Convert MIMIC-IV tables to QUIQ long-format for LYDUS data quality assessment (가이드라인 §1.5) |
+| [class-diversity](lydus/class-diversity/SKILL.md) | Calculate Simpson class diversity per categorical variable in a QUIQ table |
 
 ## System Skills
 
