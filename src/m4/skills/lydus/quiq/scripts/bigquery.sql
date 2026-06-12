@@ -1089,7 +1089,132 @@ t_vitalsign AS (
 u_vitalsign AS (
     SELECT * FROM t_vitalsign
     UNPIVOT (raw_val FOR Variable_name IN (temperature, heartrate, resprate, o2sat, sbp, dbp, rhythm, pain))
+),
+
+-- ════════════════════════════════════════════════════════════════════
+-- ④ NOTE 테이블 (MIMIC_IV_NOTE)
+--    §1.5.2 Mapping rule: 비정형 임상 노트 → note_clinical / note_rad
+--
+--    discharge  / radiology       : 원본 1행 → 4 QUIQ 행 (동일 _pk 공유)
+--      ① text       : Value=노트 전문,  Event_date=charttime, Mapping_info_1=note_clinical|note_rad
+--      ② storetime  : Mapping_info_1='date'
+--      ③ note_type  : 메타정보 (Is_categorical='1')
+--      ④ note_seq   : 메타정보
+--
+--    discharge_detail / radiology_detail : 각 섹션(field_name→Variable_name, field_value→Value)
+--      Mapping_info_1 = note_clinical | note_rad
+--      note_id 기준으로 discharge/radiology 테이블과 JOIN해서 hadm_id 확보
+-- ════════════════════════════════════════════════════════════════════
+
+-- ── MIMIC_IV_NOTE.discharge ──────────────────────────────────────────
+q_discharge_base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY subject_id, hadm_id, note_seq) - 1 AS _pk,
+        subject_id, hadm_id,
+        CAST(note_id   AS STRING)                  AS _note_id,
+        CAST(note_type AS STRING)                  AS _note_type,
+        CAST(note_seq  AS STRING)                  AS _note_seq,
+        CAST(charttime AS STRING)                  AS _ev,
+        COALESCE(CAST(text      AS STRING), '')    AS _text,
+        COALESCE(CAST(storetime AS STRING), '')    AS _storetime
+    FROM `{bq_project}`.MIMIC_IV_NOTE.discharge
+),
+q_discharge_all AS (
+    -- ① text (퇴원요약 전문 - note_clinical)
+    SELECT _pk, subject_id, hadm_id, '' AS _itemid,
+           'text' AS _vname, _ev, CAST(NULL AS STRING) AS _vu,
+           _text AS _val, 'string' AS _vtype,
+           '0' AS _iscat,
+           CASE _note_type WHEN 'DS' THEN 'note_clinical' ELSE NULL END AS _m1,
+           CAST(NULL AS STRING) AS _m2, 1 AS _rtype
+    FROM q_discharge_base
+    UNION ALL
+    -- ② storetime
+    SELECT _pk, subject_id, hadm_id, '',
+           'storetime', NULL, NULL, _storetime, _var_type(_storetime),
+           '0', 'date', NULL, 2
+    FROM q_discharge_base
+    UNION ALL
+    -- ③ note_type
+    SELECT _pk, subject_id, hadm_id, '',
+           'note_type', NULL, NULL, _note_type, 'string',
+           '1', NULL, NULL, 3
+    FROM q_discharge_base
+    UNION ALL
+    -- ④ note_seq
+    SELECT _pk, subject_id, hadm_id, '',
+           'note_seq', NULL, NULL, _note_seq, 'numeric',
+           '0', NULL, NULL, 4
+    FROM q_discharge_base
+),
+
+-- ── MIMIC_IV_NOTE.discharge_detail ──────────────────────────────────
+-- note_id 기준으로 discharge 테이블과 LEFT JOIN하여 hadm_id 확보
+q_discharge_detail AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY dd.subject_id, dd.note_id, dd.field_ordinal) - 1 AS _pk,
+        dd.subject_id,
+        d.hadm_id,
+        COALESCE(CAST(dd.field_name  AS STRING), '') AS _field_name,
+        COALESCE(CAST(dd.field_value AS STRING), '') AS _field_value
+    FROM `{bq_project}`.MIMIC_IV_NOTE.discharge_detail dd
+    LEFT JOIN `{bq_project}`.MIMIC_IV_NOTE.discharge d ON dd.note_id = d.note_id
+),
+
+-- ── MIMIC_IV_NOTE.radiology ──────────────────────────────────────────
+q_radiology_base AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY subject_id, hadm_id, note_seq) - 1 AS _pk,
+        subject_id, hadm_id,
+        CAST(note_id   AS STRING)                  AS _note_id,
+        CAST(note_type AS STRING)                  AS _note_type,
+        CAST(note_seq  AS STRING)                  AS _note_seq,
+        CAST(charttime AS STRING)                  AS _ev,
+        COALESCE(CAST(text      AS STRING), '')    AS _text,
+        COALESCE(CAST(storetime AS STRING), '')    AS _storetime
+    FROM `{bq_project}`.MIMIC_IV_NOTE.radiology
+),
+q_radiology_all AS (
+    -- ① text (영상의학 보고서 전문 - note_rad)
+    SELECT _pk, subject_id, hadm_id, '' AS _itemid,
+           'text' AS _vname, _ev, CAST(NULL AS STRING) AS _vu,
+           _text AS _val, 'string' AS _vtype,
+           '0' AS _iscat,
+           CASE WHEN _note_type IN ('RR', 'AR') THEN 'note_rad' ELSE NULL END AS _m1,
+           CAST(NULL AS STRING) AS _m2, 1 AS _rtype
+    FROM q_radiology_base
+    UNION ALL
+    -- ② storetime
+    SELECT _pk, subject_id, hadm_id, '',
+           'storetime', NULL, NULL, _storetime, _var_type(_storetime),
+           '0', 'date', NULL, 2
+    FROM q_radiology_base
+    UNION ALL
+    -- ③ note_type
+    SELECT _pk, subject_id, hadm_id, '',
+           'note_type', NULL, NULL, _note_type, 'string',
+           '1', NULL, NULL, 3
+    FROM q_radiology_base
+    UNION ALL
+    -- ④ note_seq
+    SELECT _pk, subject_id, hadm_id, '',
+           'note_seq', NULL, NULL, _note_seq, 'numeric',
+           '0', NULL, NULL, 4
+    FROM q_radiology_base
+),
+
+-- ── MIMIC_IV_NOTE.radiology_detail ──────────────────────────────────
+q_radiology_detail AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY rd.subject_id, rd.note_id, rd.field_ordinal) - 1 AS _pk,
+        rd.subject_id,
+        r.hadm_id,
+        COALESCE(CAST(rd.field_name  AS STRING), '') AS _field_name,
+        COALESCE(CAST(rd.field_value AS STRING), '') AS _field_value
+    FROM `{bq_project}`.MIMIC_IV_NOTE.radiology_detail rd
+    LEFT JOIN `{bq_project}`.MIMIC_IV_NOTE.radiology r ON rd.note_id = r.note_id
 )
+
 -- ═══════════════════════════════════════════════════════════════════
 -- UNION ALL: 모든 테이블 결합
 -- 컬럼 순서: Primary_key, Variable_ID, Original_table_name, Variable_name,
@@ -1528,6 +1653,38 @@ SELECT _pk, '', 'VITALSIGN', Variable_name, _ev, raw_val, NULL,
            WHEN 'pain'        THEN 'chart_event'
            ELSE NULL END AS Mapping_info_2
 FROM u_vitalsign
+
+-- ── ④ NOTE 테이블 ─────────────────────────────────────────────────
+-- Variable_ID: note_id (text 행), '' (나머지 행)
+-- Mapping_info_1: 'note_clinical'(discharge), 'note_rad'(radiology), 'date'(storetime)
+UNION ALL
+SELECT _pk, _itemid, 'DISCHARGE', _vname, _ev, _val, _vu, _vtype, _iscat,
+       '', '', '',
+       CAST(subject_id AS STRING), CAST(hadm_id AS STRING), '',
+       _m1, _m2
+FROM q_discharge_all
+UNION ALL
+SELECT _pk, '', 'DISCHARGE_DETAIL', _field_name, NULL, _field_value, NULL,
+       'string', '0', '', '', '',
+       CAST(subject_id AS STRING),
+       COALESCE(CAST(hadm_id AS STRING), ''), '',
+       'note_clinical', NULL
+FROM q_discharge_detail
+WHERE _field_value != ''
+UNION ALL
+SELECT _pk, _itemid, 'RADIOLOGY', _vname, _ev, _val, _vu, _vtype, _iscat,
+       '', '', '',
+       CAST(subject_id AS STRING), CAST(hadm_id AS STRING), '',
+       _m1, _m2
+FROM q_radiology_all
+UNION ALL
+SELECT _pk, '', 'RADIOLOGY_DETAIL', _field_name, NULL, _field_value, NULL,
+       'string', '0', '', '', '',
+       CAST(subject_id AS STRING),
+       COALESCE(CAST(hadm_id AS STRING), ''), '',
+       'note_rad', NULL
+FROM q_radiology_detail
+WHERE _field_value != ''
 
 ORDER BY Original_table_name, Patient_id, Primary_key
 ;

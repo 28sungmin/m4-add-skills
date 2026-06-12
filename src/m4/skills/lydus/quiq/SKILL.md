@@ -56,6 +56,8 @@ Converts all MIMIC-IV tables (hosp, icu, ed schemas) into the QUIQ long-format t
 | 7 | Drug names (medication, drug, name) | `prescription` | `drug` |
 | 7 | Prescription info (dose, route, frequency) | `prescription` | `prescription_info` |
 | 8 | Procedure events (procedureevents) | `procedure` | NULL |
+| — | Clinical notes (discharge summaries) | `note_clinical` | NULL |
+| — | Radiology reports | `note_rad` | NULL |
 | — | All others | NULL | NULL |
 
 ## Conversion Strategy by Table Type
@@ -70,6 +72,24 @@ Single row → multiple QUIQ rows (one per column). `Event_date = NULL`.
 - **PRESCRIPTIONS**: drug → `prescription/drug`; gsn/ndc/formulary_drug_cd → `medical_code`
 - **DIAGNOSES_ICD**: icd_code → `medical_code`
 - **HCPCSEVENTS**: hcpcs_cd → `medical_code`; short_description → `procedure`
+
+### ④ Note Tables (MIMIC_IV_NOTE, base + all CTE pattern)
+One original note row → 4 QUIQ rows sharing the same Primary_key.
+
+| Table | Variable_name | Event_date | Mapping_info_1 | Variable_ID |
+|-------|--------------|------------|----------------|-------------|
+| DISCHARGE | `text` | charttime | `note_clinical` (note_type=`DS`) | '' |
+| DISCHARGE | `storetime` | NULL | `date` | '' |
+| DISCHARGE | `note_type` | NULL | NULL | '' |
+| DISCHARGE | `note_seq` | NULL | NULL | '' |
+| RADIOLOGY | `text` | charttime | `note_rad` (note_type=`RR`/`AR`) | '' |
+| RADIOLOGY | `storetime` | NULL | `date` | '' |
+| RADIOLOGY | `note_type` | NULL | NULL | '' |
+| RADIOLOGY | `note_seq` | NULL | NULL | '' |
+| DISCHARGE_DETAIL | field_name | NULL | `note_clinical` | '' |
+| RADIOLOGY_DETAIL | field_name | NULL | `note_rad` | '' |
+
+`discharge_detail` / `radiology_detail` are JOIN-ed to their parent table on `note_id` to obtain `hadm_id`.
 
 ### ② Event Tables (base + all CTE pattern)
 One original row → multiple QUIQ rows sharing the same Primary_key.
