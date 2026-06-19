@@ -1,6 +1,6 @@
 ---
 name: sequence-validity
-description: Validate temporal ordering of date variables in a QUIQ-format table. Uses LLM (OpenAI) to automatically identify start/end date variable pairs, then checks whether start_date <= end_date for each matched record. Requires OpenAI API. Use for LYDUS data quality assessment of chronological consistency.
+description: Validate temporal ordering of date variables in a QUIQ-format table. Uses Claude CLI to automatically identify start/end date variable pairs, then checks whether start_date <= end_date for each matched record. No API key required. Use for LYDUS data quality assessment of chronological consistency.
 tier: community
 category: lydus
 parameters:
@@ -10,17 +10,11 @@ parameters:
   save_path:
     description: Directory path to save output files.
     type: string
-  model_ver:
-    description: OpenAI model name (e.g. 'gpt-4o-mini', 'gpt-4o').
-    type: string
-  api_key:
-    description: OpenAI API key.
-    type: string
 ---
 
 # Sequence Validity
 
-Validates the **chronological ordering** of date variables in a QUIQ-format table. The LLM automatically identifies meaningful (start, end) date pairs (e.g., admission → discharge), then checks whether `start_date ≤ end_date` for each matched patient record.
+Validates the **chronological ordering** of date variables in a QUIQ-format table. Claude CLI automatically identifies meaningful (start, end) date pairs (e.g., admission → discharge), then checks whether `start_date ≤ end_date` for each matched patient record.
 
 ## When to Use This Skill
 
@@ -30,7 +24,7 @@ Validates the **chronological ordering** of date variables in a QUIQ-format tabl
 
 ## SQL Support
 
-**Not applicable.** LLM is required to identify date-variable pairs.
+**Not applicable.** Claude CLI is required to identify date-variable pairs.
 
 ## Filtering Logic
 
@@ -43,7 +37,7 @@ Validates the **chronological ordering** of date variables in a QUIQ-format tabl
 
 1. **Extract date rows** — filter `Mapping_info_1` contains `date`, parse `Value` as datetime
 2. **Collect unique identifiers** — `Original_table_name - Variable_name` for all date variables
-3. **LLM pair identification** — send identifier list to OpenAI; receive `timepoint_pairs` list
+3. **LLM pair identification** — send identifier list to Claude CLI; receive `timepoint_pairs` list
 4. **LLM exclusion rules**:
    - Non-time variables excluded
    - Unpaired time variables excluded
@@ -69,9 +63,7 @@ from scripts.sequence_validity import get_sequence_validity
 quiq = pd.read_csv("/path/to/quiq.csv")
 
 df_total, df_summary = get_sequence_validity(
-    quiq=quiq,
-    model="gpt-4o-mini",
-    api_key="sk-..."
+    quiq=quiq
 )
 
 total_num = df_summary['Total_num'].sum()
@@ -87,8 +79,6 @@ print(df_summary)
 # config.yaml
 quiq_path: /path/to/quiq.csv
 save_path: /path/to/output
-model_ver: gpt-4o-mini
-api_key:   sk-...
 ```
 
 ```bash
@@ -99,7 +89,7 @@ python scripts/sequence_validity.py --config config.yaml
 
 1. **Same-table constraint** — pairs spanning different tables are skipped. Start and end variables must be from the same `Original_table_name`.
 
-2. **LLM 응답 파싱** — LLM은 `timepoint_pairs = [(...), ...]` 형식으로 응답해야 함. `=` 기준으로 분리 후 `ast.literal_eval` 파싱. 형식 불일치 시 `ValueError` 발생.
+2. **LLM 응답 파싱** — Claude CLI는 `timepoint_pairs = [(...), ...]` 형식으로 응답해야 함. `=` 기준으로 분리 후 `ast.literal_eval` 파싱. 형식 불일치 시 `ValueError` 발생. 응답이 마크다운 코드블록을 포함하면 파싱 실패할 수 있으니 system prompt의 output format 예시를 그대로 따르도록 설계됨.
 
 3. **날짜 변환 실패** — `pd.to_datetime(..., errors='coerce')`로 변환 불가한 값은 NaT → `dropna()` 로 제외됨.
 
@@ -110,7 +100,7 @@ python scripts/sequence_validity.py --config config.yaml
    - `os.path.join` 사용 (문자열 연결 대신)
    - `required=True` for `--config`
 
-5. **Dependencies** — `openai`, `pandas`, `numpy`
+5. **Dependencies** — `pandas`, `numpy` (LLM: Claude CLI via subprocess, timeout 180s)
 
 ## References
 

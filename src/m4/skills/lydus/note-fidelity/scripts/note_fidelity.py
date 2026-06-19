@@ -1,7 +1,7 @@
 import re
 import yaml
 import argparse
-import openai
+import subprocess
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -114,20 +114,17 @@ def draw_unst_fidelity_box_plot(ax: Axes, result_df: pd.DataFrame):
     ax.grid()
 
 
-def _call_with_retry(client, model: str, template: str, note_text: str, attempts: int = 3):
-    """Send template + note to LLM, retry up to `attempts` times on failure."""
+def _call_with_retry(template: str, note_text: str, attempts: int = 3):
+    """Send template + note to Claude CLI, retry up to `attempts` times on failure."""
     query = template + "\n" + str(note_text)
     for _ in range(attempts):
         try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": _SYSTEM_PROMPT},
-                    {"role": "user", "content": query},
-                ],
-                temperature=0,
+            result = subprocess.run(
+                ['claude', '-p', query, '--system-prompt', _SYSTEM_PROMPT],
+                capture_output=True, text=True, timeout=60
             )
-            return resp.choices[0].message.content
+            if result.returncode == 0:
+                return result.stdout.strip()
         except Exception:
             pass
     return "Failed after retries"
@@ -157,7 +154,7 @@ def _score_radiology(text: str) -> float:
     return round((1 - not_mentioned / total) * 100, 2)
 
 
-def _run_clinical(quiq: pd.DataFrame, client, model: str):
+def _run_clinical(quiq: pd.DataFrame):
     df = quiq[quiq['Mapping_info_1'] == 'note_clinical'].copy()
 
     def process_row(row):
@@ -165,7 +162,7 @@ def _run_clinical(quiq: pd.DataFrame, client, model: str):
         template = _CLINICAL_TEMPLATES.get(note_type, "")
         if not template:
             return "Invalid mapping or template missing"
-        return _call_with_retry(client, model, template, row['Value'])
+        return _call_with_retry(template, row['Value'])
 
     tqdm.pandas(desc="Running fidelity (clinical)")
     df['Fidelity_clinical'] = df.progress_apply(process_row, axis=1)
@@ -178,7 +175,7 @@ def _run_clinical(quiq: pd.DataFrame, client, model: str):
     return df_filtered, mean, std
 
 
-def _run_radiology(quiq: pd.DataFrame, client, model: str):
+def _run_radiology(quiq: pd.DataFrame):
     df = quiq[quiq['Mapping_info_1'] == 'note_rad'].copy()
 
     def process_row(row):
@@ -186,7 +183,7 @@ def _run_radiology(quiq: pd.DataFrame, client, model: str):
         template = _RADIOLOGY_TEMPLATES.get(note_type, "")
         if not template:
             return "Invalid mapping or template missing"
-        return _call_with_retry(client, model, template, row['Value'])
+        return _call_with_retry(template, row['Value'])
 
     tqdm.pandas(desc="Running fidelity (radiology)")
     df['Fidelity_radiology'] = df.progress_apply(process_row, axis=1)
@@ -199,13 +196,11 @@ def _run_radiology(quiq: pd.DataFrame, client, model: str):
     return df_filtered, mean, std
 
 
-def get_note_fidelity(quiq: pd.DataFrame, model: str, api_key: str):
+def get_note_fidelity(quiq: pd.DataFrame):
     """
     Parameters
     ----------
-    quiq    : QUIQ-format DataFrame
-    model   : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key : OpenAI API key
+    quiq : QUIQ-format DataFrame
 
     Returns
     -------
@@ -221,10 +216,8 @@ def get_note_fidelity(quiq: pd.DataFrame, model: str, api_key: str):
     assert len(quiq[quiq['Mapping_info_1'].isin(['note_rad', 'note_clinical'])]) > 0, \
         'FAIL: No note_rad or note_clinical rows in QUIQ table.'
 
-    client = openai.OpenAI(api_key=api_key)
-
-    df_clinical, mean_clinical, std_clinical = _run_clinical(quiq.copy(), client, model)
-    df_radiology, mean_radiology, std_radiology = _run_radiology(quiq.copy(), client, model)
+    df_clinical, mean_clinical, std_clinical = _run_clinical(quiq.copy())
+    df_radiology, mean_radiology, std_radiology = _run_radiology(quiq.copy())
 
     df_c = df_clinical.rename(columns={
         'Fidelity_clinical': 'Fidelity',
@@ -268,11 +261,7 @@ if __name__ == '__main__':
     save_path = config['save_path']
 
     df_clinical, df_radiology, result_df, summary_df, \
-    mean_clinical, std_clinical, mean_radiology, std_radiology = get_note_fidelity(
-        quiq=quiq,
-        model=config['model_ver'],
-        api_key=config['api_key'],
-    )
+    mean_clinical, std_clinical, mean_radiology, std_radiology = get_note_fidelity(quiq=quiq)
 
     detail_cols = [
         'Mapping_info_1', 'Mapping_info_2', 'Primary_key', 'Original_table_name',

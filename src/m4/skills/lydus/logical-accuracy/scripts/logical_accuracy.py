@@ -4,7 +4,7 @@ import yaml
 import argparse
 import numpy as np
 import pandas as pd
-import openai
+import subprocess
 import statsmodels.formula.api as smf
 import torch
 import torch.nn as nn
@@ -17,11 +17,21 @@ from torch.utils.data import TensorDataset, DataLoader
 
 # ── LLM helpers ───────────────────────────────────────────────────
 
+def _call_claude(system_prompt: str, user_content: str, timeout: int = 60) -> str:
+    result = subprocess.run(
+        ['claude', '-p', user_content, '--system-prompt', system_prompt],
+        capture_output=True, text=True, timeout=timeout
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f'Claude CLI error: {result.stderr}')
+    return result.stdout.strip()
+
+
 def _make_var_list_text(var_list) -> str:
     return ', '.join(f"'{v}'" for v in var_list)
 
 
-def llm_ask_sex(client, model_ver: str, var_list_text: str) -> str | None:
+def llm_ask_sex(var_list_text: str) -> str | None:
     system_prompt = (
         "You are a medical data expert.\n"
         "A list of variable names will be provided.\n"
@@ -30,19 +40,11 @@ def llm_ask_sex(client, model_ver: str, var_list_text: str) -> str | None:
         "And return it **exactly as it appears** in the provided list.\n"
         "If no appropriate variable is found, respond with 'None'."
     )
-    response = client.chat.completions.create(
-        model=model_ver,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f'List of variable names : {var_list_text}'}
-        ],
-        temperature=0
-    )
-    result = response.choices[0].message.content.strip()
+    result = _call_claude(system_prompt, f'List of variable names : {var_list_text}')
     return None if result == 'None' else result.replace("'", '')
 
 
-def llm_ask_birthdate(client, model_ver: str, var_list_text: str) -> str | None:
+def llm_ask_birthdate(var_list_text: str) -> str | None:
     system_prompt = (
         "You are a medical data expert.\n"
         "A list of variable names will be provided.\n"
@@ -51,19 +53,11 @@ def llm_ask_birthdate(client, model_ver: str, var_list_text: str) -> str | None:
         "And return it **exactly as it appears** in the provided list.\n"
         "If no appropriate variable is found, respond with 'None'."
     )
-    response = client.chat.completions.create(
-        model=model_ver,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f'List of variable names : {var_list_text}'}
-        ],
-        temperature=0
-    )
-    result = response.choices[0].message.content.strip()
+    result = _call_claude(system_prompt, f'List of variable names : {var_list_text}')
     return None if result == 'None' else result.replace("'", '')
 
 
-def llm_ask_recommend(client, model_ver: str, var_name_target: str, n: int, var_list_text: str) -> list:
+def llm_ask_recommend(var_name_target: str, n: int, var_list_text: str) -> list:
     system_prompt = (
         f"You are a medical data expert.\n\n"
         f"Your will be provided with :\n"
@@ -78,15 +72,8 @@ def llm_ask_recommend(client, model_ver: str, var_name_target: str, n: int, var_
         f"4. Return the variable names **exactly as it appears** in the provided list.\n"
         f"5. Do **not include** any additional explanation."
     )
-    response = client.chat.completions.create(
-        model=model_ver,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f'Target variable : {var_name_target}\nList of variable names : {var_list_text}'}
-        ],
-        temperature=0
-    )
-    text = response.choices[0].message.content.replace("'", '')
+    text = _call_claude(system_prompt, f'Target variable : {var_name_target}\nList of variable names : {var_list_text}')
+    text = text.replace("'", '')
     recommended = text.split('!')
     print(f'RECOMMENDED VARIABLES : {recommended}')
     return recommended
@@ -159,8 +146,6 @@ def _train_autoencoder(Input_scaled: torch.Tensor, device) -> nn.Module:
 
 def get_logical_accuracy(
         quiq: pd.DataFrame,
-        model_ver: str,
-        api_key: str,
         operation_type_manual: bool,
         target_variable: str,
         automatic_num: int,
@@ -169,14 +154,11 @@ def get_logical_accuracy(
     Parameters
     ----------
     quiq                  : QUIQ-format DataFrame
-    model_ver             : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key               : OpenAI API key
     operation_type_manual : True = manual target selection, False = automatic (top-N by count)
     target_variable       : target variable name (used when operation_type_manual=True)
     automatic_num         : number of top variables to analyze (used when operation_type_manual=False)
     recommend_num         : number of correlated variables recommended by LLM
     """
-    client = openai.OpenAI(api_key=api_key)
     gc.collect()
 
     df_quiq = quiq.copy()
@@ -190,7 +172,7 @@ def get_logical_accuracy(
     df_sex_quiq = df_quiq[df_quiq['Is_categorical'] == 1]
     var_list_sex = df_sex_quiq['Variable_name'].unique()
     if len(var_list_sex) > 0:
-        var_name_sex = llm_ask_sex(client, model_ver, _make_var_list_text(var_list_sex))
+        var_name_sex = llm_ask_sex(_make_var_list_text(var_list_sex))
     else:
         var_name_sex = None
     print(f'FIND SEX VARIABLE : {var_name_sex}\n')
@@ -201,7 +183,7 @@ def get_logical_accuracy(
     df_birthdate_quiq = df_quiq[df_quiq['Mapping_info_1'] == 'date']
     var_list_birthdate = df_birthdate_quiq['Variable_name'].unique()
     if len(var_list_birthdate) > 0:
-        var_name_birthdate = llm_ask_birthdate(client, model_ver, _make_var_list_text(var_list_birthdate))
+        var_name_birthdate = llm_ask_birthdate(_make_var_list_text(var_list_birthdate))
     else:
         var_name_birthdate = None
     print(f'FIND BIRTHDATE VARIABLE : {var_name_birthdate}\n')
@@ -318,7 +300,7 @@ def get_logical_accuracy(
         # LLM: recommend correlated variables
         var_list_candidate = list(df_event_essential['Variable_name'].unique()) + list(df_others_essential['Value'].unique())
         var_list_recommended = llm_ask_recommend(
-            client, model_ver, var_name_target, recommend_num, _make_var_list_text(var_list_candidate)
+            var_name_target, recommend_num, _make_var_list_text(var_list_candidate)
         )
 
         # ── Build clinical context vector ──────────────────────────
@@ -512,16 +494,13 @@ if __name__ == '__main__':
 
     quiq = pd.read_csv(config['quiq_path'])
     save_path = config['save_path']
-    model_ver = config['model_ver']
-    api_key = config['api_key']
     operation_type_manual = bool(config.get('operation_type_manual', False))
     target_variable = config.get('target_variable', '')
     automatic_num = config.get('automatic_num', 5)
     recommend_num = config.get('recommend_num', 5)
 
     var_list_target, dict_total, dict_outlier = get_logical_accuracy(
-        quiq, model_ver, api_key,
-        operation_type_manual, target_variable, automatic_num, recommend_num
+        quiq, operation_type_manual, target_variable, automatic_num, recommend_num
     )
 
     outlier_num = 0

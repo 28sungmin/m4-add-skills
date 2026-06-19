@@ -3,7 +3,7 @@ import yaml
 import argparse
 import datetime
 import pandas as pd
-import openai
+import subprocess
 from dateutil.parser import parse
 from tqdm import tqdm
 
@@ -44,21 +44,15 @@ def _is_valid_date(date_string) -> bool:
         return False
 
 
-def _gpt_chat(client, model, user_content, temperature=0, max_tokens=10, n=1):
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": SYSTEM_CONTENT},
-            {"role": "user", "content": user_content}
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-        n=n
+def _llm_chat(user_content: str) -> list:
+    result = subprocess.run(
+        ['claude', '-p', user_content, '--system-prompt', SYSTEM_CONTENT],
+        capture_output=True, text=True, timeout=30
     )
-    return [choice.message.content for choice in response.choices]
+    return [result.stdout.strip()] if result.returncode == 0 else []
 
 
-def _validate_date_entry(date_string, client, model) -> bool | None:
+def _validate_date_entry(date_string) -> bool | None:
     if _is_valid_date(date_string):
         return True
     if _valid_date_custom(str(date_string)):
@@ -67,7 +61,7 @@ def _validate_date_entry(date_string, client, model) -> bool | None:
     # LLM fallback for ambiguous strings
     print(f'  → LLM fallback: {date_string}')
     try:
-        result = _gpt_chat(client, model, f"date : {date_string}")
+        result = _llm_chat(f"date : {date_string}")
         answer = result[0].strip().lower() if result else ""
         if "no" in answer:
             return False
@@ -93,21 +87,18 @@ def _extract_date_data_mapping(df: pd.DataFrame) -> pd.DataFrame:
     return combined[['Original_table_name', 'Variable_name', 'Date_value']]
 
 
-def get_date_validity(quiq: pd.DataFrame, model: str, api_key: str):
+def get_date_validity(quiq: pd.DataFrame, use_llm: bool = True):
     """
     Parameters
     ----------
     quiq    : QUIQ-format DataFrame
-    model   : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key : OpenAI API key (pass None to disable LLM fallback)
+    use_llm : If True (default), uses Claude CLI for ambiguous date fallback.
 
     Returns
     -------
     valid_results_df : per-row validation result (Date_value, Is_valid)
     summary_df       : per-variable summary (Total_date, Invalid_date, Date_Validity_(%))
     """
-    client = openai.OpenAI(api_key=api_key) if api_key else None
-
     df = quiq.copy()
     df['Mapping_info_1'] = df['Mapping_info_1'].astype(str)
 
@@ -129,10 +120,8 @@ def get_date_validity(quiq: pd.DataFrame, model: str, api_key: str):
             (final_date_df['Variable_name'] == variable_name)
         ].copy()
 
-        if client:
-            temp['Is_valid'] = temp['Date_value'].progress_apply(
-                lambda x: _validate_date_entry(x, client, model)
-            )
+        if use_llm:
+            temp['Is_valid'] = temp['Date_value'].progress_apply(_validate_date_entry)
         else:
             temp['Is_valid'] = temp['Date_value'].apply(
                 lambda x: _is_valid_date(x) or _valid_date_custom(str(x))
@@ -172,10 +161,9 @@ if __name__ == '__main__':
 
     quiq = pd.read_csv(config['quiq_path'])
     save_path = config['save_path']
-    model_ver = config.get('model_ver', 'gpt-4o-mini')
-    api_key = config.get('api_key')
+    use_llm = config.get('use_llm', True)
 
-    valid_results_df, summary_df = get_date_validity(quiq, model_ver, api_key)
+    valid_results_df, summary_df = get_date_validity(quiq, use_llm=use_llm)
 
     total_date = summary_df['Total_date'].sum()
     invalid_date = summary_df['Invalid_date'].sum()

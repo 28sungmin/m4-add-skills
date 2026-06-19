@@ -1,6 +1,6 @@
 ---
 name: cross-sectional-consistency
-description: Calculate cross-sectional consistency for categorical string variables in a QUIQ-format table using an LLM (OpenAI) to group semantically equivalent values. Use for data quality assessment when the same real-world concept may be expressed in multiple ways (e.g., 'F', 'Female', '여자').
+description: Calculate cross-sectional consistency for categorical string variables in a QUIQ-format table using Claude CLI to group semantically equivalent values. No API key required. Use for data quality assessment when the same real-world concept may be expressed in multiple ways (e.g., 'F', 'Female', '여자').
 tier: community
 category: lydus
 parameters:
@@ -13,17 +13,11 @@ parameters:
   save_path:
     description: Directory path to save output files.
     type: string
-  model_ver:
-    description: OpenAI model name (e.g. 'gpt-4o', 'gpt-4o-mini').
-    type: string
-  api_key:
-    description: OpenAI API key.
-    type: string
 ---
 
 # Cross-Sectional Consistency
 
-Calculates **cross-sectional consistency** for categorical string variables in a QUIQ-format table. Uses an LLM (OpenAI) to group unique values by semantic equivalence, then measures how consistently a single canonical form is used within each semantic group.
+Calculates **cross-sectional consistency** for categorical string variables in a QUIQ-format table. Uses Claude CLI to group unique values by semantic equivalence, then measures how consistently a single canonical form is used within each semantic group.
 
 ## When to Use This Skill
 
@@ -79,9 +73,7 @@ via  = pd.read_csv("/path/to/via.csv")
 
 average_consistency, results_df, detail = get_cross_sectional_consistency(
     quiq=quiq,
-    via=via,
-    model="gpt-4o-mini",
-    api_key="sk-..."
+    via=via
 )
 
 print(f"Average Cross-Sectional Consistency (%) = {round(average_consistency * 100, 2)}")
@@ -94,8 +86,6 @@ print(f"Average Cross-Sectional Consistency (%) = {round(average_consistency * 1
 quiq_path: /path/to/quiq.csv
 via_path:  /path/to/via.csv
 save_path: /path/to/output
-model_ver: gpt-4o-mini
-api_key:   sk-...
 ```
 
 ```bash
@@ -104,13 +94,13 @@ python scripts/cross_sectional_consistency.py --config config.yaml
 
 ## Critical Notes
 
-1. **SQL 변환 불가** — LLM API 호출 및 응답 파싱이 핵심 로직이므로 DuckDB/BigQuery SQL로 표현할 수 없음.
+1. **SQL 변환 불가** — Claude CLI 호출 및 응답 파싱이 핵심 로직이므로 DuckDB/BigQuery SQL로 표현할 수 없음.
 
 2. **VIA 파일 필수** — `via_path`가 없으면 모든 변수에 `"No description available"`이 전달되어 LLM 정확도가 낮아짐.
 
 3. **LLM 재시도 로직** — 응답이 실제 값과 매칭되지 않으면 최대 5회 재시도. 여전히 실패하면 해당 변수는 결과에서 제외됨.
 
-4. **비용** — 변수 수 × LLM 호출. 대규모 QUIQ에서는 비용이 클 수 있으므로 `targets`에서 일부 샘플링 권장.
+4. **API 키 불필요** — LLM 호출은 현재 Claude Code 세션의 Claude CLI(`claude -p`)를 통해 처리되므로 별도 API 키가 필요 없음.
 
 5. **Is_categorical 타입** — 원본 코드에서 `Is_categorical == 1` 비교 전 `pd.to_numeric()` 변환을 누락한 버그가 있었음. 스킬 버전에서 수정됨.
 

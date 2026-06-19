@@ -2,7 +2,7 @@ import gc
 import yaml
 import argparse
 import pandas as pd
-import openai
+import subprocess
 
 
 REGEX_CACHE = {
@@ -41,9 +41,9 @@ def match_code_regex(target_name: str, target_desc: str):
     return code_name, REGEX_CACHE[code_name]
 
 
-def llm_define_regex(client, model: str, target_name: str, target_description: str):
+def llm_define_regex(target_name: str, target_description: str):
     """LLM fallback: identify code type and generate regex for unknown variables."""
-    system_prompt = (
+    system_prompt_1 = (
         "You are a medical coding assistant.\n"
         "You will be given a name and a description of a variable.\n"
         "Your task is to identify and return **exactly one standardized medical code category** "
@@ -51,19 +51,16 @@ def llm_define_regex(client, model: str, target_name: str, target_description: s
         "Respond with only the name of the code category, no additional explanation.\n"
         "If the description does not clearly correspond to any known code category, respond with 'None'"
     )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f"Name of a variable : {target_name}\nDescription of a variable : {target_description}"}
-        ],
-        temperature=0
+    result = subprocess.run(
+        ['claude', '-p', f"Name of a variable : {target_name}\nDescription of a variable : {target_description}",
+         '--system-prompt', system_prompt_1],
+        capture_output=True, text=True, timeout=30
     )
-    code_name = response.choices[0].message.content.strip()
+    code_name = result.stdout.strip() if result.returncode == 0 else 'None'
     if code_name == 'None':
         return None, None
 
-    system_prompt = (
+    system_prompt_2 = (
         "You are medical coding expert.\n"
         "You will be given the name of a standardized medical code category (e.g. ICD-9, SNOMED-CT).\n"
         "Your task is to return a regular expression that accurately captures the **typical format** "
@@ -71,31 +68,26 @@ def llm_define_regex(client, model: str, target_name: str, target_description: s
         "Respond with only the regular expression, no additional explanation.\n"
         "If the format of the given category is unknown or cannot be generalized, respond with 'None'"
     )
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f"Medical code category : {code_name}"}
-        ],
-        temperature=0
+    result = subprocess.run(
+        ['claude', '-p', f"Medical code category : {code_name}", '--system-prompt', system_prompt_2],
+        capture_output=True, text=True, timeout=30
     )
-    regex_for_target = response.choices[0].message.content.strip()
+    regex_for_target = result.stdout.strip() if result.returncode == 0 else 'None'
     if regex_for_target == 'None':
         return code_name, None
 
     return code_name, regex_for_target
 
 
-def get_code_validity(quiq: pd.DataFrame, via: pd.DataFrame, model: str, api_key: str):
+def get_code_validity(quiq: pd.DataFrame, via: pd.DataFrame, use_llm: bool = True):
     """
     Parameters
     ----------
     quiq    : QUIQ-format DataFrame
     via     : Variable Information Annotation — columns: Original_table_name, Variable_name, Description
-    model   : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key : OpenAI API key (pass None to disable LLM fallback)
+    use_llm : If True (default), uses Claude CLI for unknown code type detection.
     """
-    client = openai.OpenAI(api_key=api_key) if api_key else None
+    client = True if use_llm else None  # used only as boolean flag below
 
     quiq_df = quiq.copy()
     via_df = via.copy()
@@ -131,7 +123,7 @@ def get_code_validity(quiq: pd.DataFrame, via: pd.DataFrame, model: str, api_key
         code_name, regex = match_code_regex(str(name), str(desc))
 
         if regex is None and client is not None:
-            code_name, regex = llm_define_regex(client, model, str(name), str(desc))
+            code_name, regex = llm_define_regex(str(name), str(desc))
 
         if regex is None:
             if code_name is None:
@@ -179,10 +171,9 @@ if __name__ == '__main__':
     quiq = pd.read_csv(config['quiq_path'])
     via = pd.read_csv(config['via_path'])
     save_path = config['save_path']
-    model_ver = config.get('model_ver', 'gpt-4o-mini')
-    api_key = config.get('api_key')
+    use_llm = config.get('use_llm', True)
 
-    validation_df, error_summary = get_code_validity(quiq, via, model_ver, api_key)
+    validation_df, error_summary = get_code_validity(quiq, via, use_llm=use_llm)
 
     error_summary.to_csv(save_path + '/format_validity_summary.csv', index=False)
     validation_df.to_csv(save_path + '/format_validity_detail.csv', index=False)

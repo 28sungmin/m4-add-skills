@@ -1,6 +1,6 @@
 ---
 name: note-fidelity
-description: Evaluate completeness (fidelity) of unstructured clinical notes and radiology reports in a QUIQ-format table. Uses LLM (OpenAI) to check whether required template items are mentioned in each note. Requires OpenAI API. Use for LYDUS data quality assessment of note_clinical and note_rad variables.
+description: Evaluate completeness (fidelity) of unstructured clinical notes and radiology reports in a QUIQ-format table. Uses Claude CLI to check whether required template items are mentioned in each note. No API key required. Use for LYDUS data quality assessment of note_clinical and note_rad variables.
 tier: community
 category: lydus
 parameters:
@@ -9,12 +9,6 @@ parameters:
     type: string
   save_path:
     description: Directory path to save output files.
-    type: string
-  model_ver:
-    description: OpenAI model name (e.g. 'gpt-4o-mini', 'gpt-4o').
-    type: string
-  api_key:
-    description: OpenAI API key.
     type: string
 ---
 
@@ -30,7 +24,7 @@ Evaluates the **completeness (fidelity)** of unstructured clinical notes and rad
 
 ## SQL Support
 
-**Not applicable.** Requires OpenAI LLM for note content analysis.
+**Not applicable.** Requires Claude CLI for note content analysis.
 
 ## Filtering Logic
 
@@ -93,9 +87,7 @@ quiq = pd.read_csv("/path/to/quiq.csv")
 
 df_clinical, df_radiology, result_df, summary_df, \
 mean_clinical, std_clinical, mean_radiology, std_radiology = get_note_fidelity(
-    quiq=quiq,
-    model="gpt-4o-mini",
-    api_key="sk-..."
+    quiq=quiq
 )
 
 mean_fidelity = round(result_df['Fidelity_results'].mean(), 2)
@@ -110,8 +102,6 @@ print(f"Radiology: {mean_radiology} ± {std_radiology}")
 # config.yaml
 quiq_path: /path/to/quiq.csv
 save_path: /path/to/output
-model_ver: gpt-4o-mini
-api_key:   sk-...
 ```
 
 ```bash
@@ -132,7 +122,7 @@ python scripts/note_fidelity.py --config config.yaml
    - `get_unstructured_fidelity` → `get_note_fidelity` (스킬 이름과 일관성)
    - 템플릿/매핑 딕셔너리를 모듈 수준 상수로 분리
 
-5. **Dependencies** — `openai`, `pandas`, `seaborn`, `matplotlib`, `tqdm`
+5. **Dependencies** — `pandas`, `seaborn`, `matplotlib`, `tqdm` (LLM: Claude CLI via subprocess)
 
 ## References
 

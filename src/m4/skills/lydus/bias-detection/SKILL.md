@@ -1,6 +1,6 @@
 ---
 name: bias-detection
-description: Detect demographic bias in LYDUS data quality metrics by computing all 16 QUIQ quality metrics (completeness, range/date/format/sequence validity, preciseness, fidelity, class/instance diversity, sentence/vocabulary diversity, logical accuracy, cross-sectional/time-series consistency, classification, note accuracy/fidelity) per Sex/Race/Age group and computing GDI (Group Disparity Index). Requires OpenAI API.
+description: Detect demographic bias in LYDUS data quality metrics by computing all 16 QUIQ quality metrics (completeness, range/date/format/sequence validity, preciseness, fidelity, class/instance diversity, sentence/vocabulary diversity, logical accuracy, cross-sectional/time-series consistency, classification, note accuracy/fidelity) per Sex/Race/Age group and computing GDI (Group Disparity Index). Uses Claude CLI (no API key required).
 tier: community
 category: lydus
 parameters:
@@ -12,12 +12,6 @@ parameters:
     type: string
   save_path:
     description: Directory path to save output CSVs and sub-metric plots.
-    type: string
-  model_ver:
-    description: OpenAI model version (e.g. gpt-4o-mini). Default gpt-4o-mini.
-    type: string
-  api_key:
-    description: OpenAI API key. Required for LLM-based sub-metrics (date/format/sequence/logical accuracy, cross-sectional consistency, note accuracy/fidelity).
     type: string
   operation_type_manual:
     description: Passed to logical-accuracy skill. false = automatic mode. Default false.
@@ -43,7 +37,7 @@ Detects **demographic bias** in data quality by running all 16 LYDUS quality met
 
 ## SQL Support
 
-**Not applicable.** Orchestrates Python implementations of all 16 sub-metrics plus OpenAI LLM calls.
+**Not applicable.** Orchestrates Python implementations of all 16 sub-metrics plus Claude CLI calls.
 
 ## Pipeline Overview
 
@@ -63,18 +57,18 @@ Detects **demographic bias** in data quality by running all 16 LYDUS quality met
 | Range Validity | ✗ | range-validity |
 | Date Validity | optional | date-validity |
 | Format Validity | optional | format-validity |
-| Sequence Validity | ✓ | sequence-validity |
+| Sequence Validity | Claude CLI | sequence-validity |
 | Completeness | ✗ | completeness |
-| Logical Accuracy | ✓ | logical-accuracy |
-| Cross-Sectional Consistency | ✓ | cross-sectional-consistency |
+| Logical Accuracy | Claude CLI | logical-accuracy |
+| Cross-Sectional Consistency | Claude CLI | cross-sectional-consistency |
 | Time Series Consistency | ✗ | time-series-consistency |
 | Class Diversity | ✗ | class-diversity |
 | Instance Diversity | ✗ | instance-diversity |
 | Fidelity | ✗ | fidelity |
 | Preciseness | ✗ | preciseness |
 | Accuracy / Precision / Recall / F1 / AUROC | ✗ | classification |
-| Note Fidelity | ✓ | note-fidelity |
-| Note Accuracy | ✓ | note-accuracy |
+| Note Fidelity | Claude CLI | note-fidelity |
+| Note Accuracy | Claude CLI | note-accuracy |
 | Vocabulary Diversity | ✗ | vocabulary-diversity |
 | Sentence Diversity | ✗ | sentence-diversity |
 
@@ -114,8 +108,6 @@ quiq = pd.read_csv("/path/to/quiq.csv")
 via  = pd.read_csv("/path/to/via.csv")
 
 config = {
-    'model_ver':            'gpt-4o-mini',
-    'api_key':              'sk-...',
     'save_path':            '/path/to/output',
     'operation_type_manual': False,
     'target_variable':      '',
@@ -134,8 +126,6 @@ print(df_sex)
 quiq_path:            /path/to/quiq.csv
 via_path:             /path/to/via.csv
 save_path:            /path/to/output
-model_ver:            gpt-4o-mini
-api_key:              sk-...
 operation_type_manual: false
 target_variable:      ""
 automatic_num:        5
@@ -153,7 +143,7 @@ python scripts/bias_detection.py --config config.yaml
 2. **Skill dependency imports** — `bias_detection.py` dynamically adds sibling skills' `scripts/` directories to `sys.path` at runtime. All 17 sibling skills must be present under the same skills root (`~/.claude/skills/` or `src/m4/skills/lydus/`).
 
 3. **원본 코드 버그 수정**:
-   - `model_ver` 미정의 변수 (line 362-366): `llm_ask_column(client, model_ver, ...)` → `_llm_ask_column(client, config['model_ver'], ...)`
+   - `model_ver` / `api_key` 제거: `_llm_ask_column`이 Claude CLI subprocess로 대체됨
    - `get_time_series_consistency(config['save_path'], quiq)` 인자 순서 반전 → `(quiq, save_path)` 로 수정
    - `get_code_validity` 반환값 3개 언팩 → 2개(`validation_df, error_summary`)로 수정
    - `get_unstructured_fidelity` / `get_unstructured_accuracy` → M4 스킬의 `get_note_fidelity` / `get_note_accuracy` 로 교체
@@ -163,7 +153,7 @@ python scripts/bias_detection.py --config config.yaml
 
 5. **Age bins** — `pd.cut(..., right=False)`: 0-9 includes 0 and excludes 10. 80+ = [80, 120).
 
-6. **Dependencies** — `openai`, plus all 16 sub-metric skill dependencies (see each skill's SKILL.md).
+6. **Dependencies** — all 16 sub-metric skill dependencies (see each skill's SKILL.md). LLM 호출은 Claude CLI via subprocess — API 키 불필요.
 
 ## References
 

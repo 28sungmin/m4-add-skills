@@ -4,7 +4,7 @@ import yaml
 import argparse
 import threading
 import pandas as pd
-import openai
+import subprocess
 import seaborn as sns
 import matplotlib.pyplot as plt
 from tqdm import tqdm
@@ -83,34 +83,21 @@ def draw_unstructured_accuracy_box_plot(ax: Axes, result_df: pd.DataFrame):
     ax.grid()
 
 
-def _call_api_threaded(client, model, system_content, note_text, timeout=60):
-    """Send one note to OpenAI and return the response text (or None on failure)."""
-    outcome = [None, None]   # [response_text, exception]
-
-    def _worker():
-        try:
-            resp = client.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_content},
-                    {"role": "user", "content": "<value note> " + note_text},
-                ],
-                temperature=0,
-            )
-            outcome[0] = resp.choices[0].message.content
-        except Exception as exc:
-            outcome[1] = exc
-
-    t = threading.Thread(target=_worker)
-    t.start()
-    t.join(timeout=timeout)
-    if t.is_alive() or outcome[1]:
-        t.join()
+def _call_claude(system_content: str, note_text: str, timeout: int = 60) -> str | None:
+    """Send one note to Claude CLI and return the response text (or None on failure)."""
+    try:
+        result = subprocess.run(
+            ['claude', '-p', '<value note> ' + note_text, '--system-prompt', system_content],
+            capture_output=True, text=True, timeout=timeout
+        )
+        if result.returncode != 0:
+            return None
+        return result.stdout.strip()
+    except Exception:
         return None
-    return outcome[0]
 
 
-def _process_notes(df: pd.DataFrame, client, model: str, system_content: str, result_col: str) -> pd.DataFrame:
+def _process_notes(df: pd.DataFrame, system_content: str, result_col: str) -> pd.DataFrame:
     """Run LLM over each row; retry failed rows once."""
     df = df.copy()
     df[result_col] = None
@@ -118,7 +105,7 @@ def _process_notes(df: pd.DataFrame, client, model: str, system_content: str, re
     start = time.time()
 
     for i, row in tqdm(df.iterrows(), total=len(df), desc=f"Processing {result_col}"):
-        text = _call_api_threaded(client, model, system_content, str(row['Value']))
+        text = _call_claude(system_content, str(row['Value']))
         if text is None:
             errors_to_retry.append(i)
         else:
@@ -126,7 +113,7 @@ def _process_notes(df: pd.DataFrame, client, model: str, system_content: str, re
 
     for i in errors_to_retry:
         print(f"Retry row {i}")
-        text = _call_api_threaded(client, model, system_content, str(df.at[i, 'Value']))
+        text = _call_claude(system_content, str(df.at[i, 'Value']))
         if text is not None:
             df.at[i, result_col] = text
 
@@ -162,31 +149,29 @@ def _score_radiology(cell: str):
         return None
 
 
-def _run_clinical(quiq: pd.DataFrame, client, model: str):
+def _run_clinical(quiq: pd.DataFrame):
     df = quiq[quiq['Mapping_info_1'] == 'note_clinical'].copy()
-    df = _process_notes(df, client, model, _SYSTEM_CLINICAL, 'Accuracy_clinical')
+    df = _process_notes(df, _SYSTEM_CLINICAL, 'Accuracy_clinical')
     df['Accuracy_clinical_result'] = df['Accuracy_clinical'].apply(_score_clinical)
     mean = df['Accuracy_clinical_result'].mean()
     std = df['Accuracy_clinical_result'].std()
     return df, mean, std
 
 
-def _run_radiology(quiq: pd.DataFrame, client, model: str):
+def _run_radiology(quiq: pd.DataFrame):
     df = quiq[quiq['Mapping_info_1'] == 'note_rad'].copy()
-    df = _process_notes(df, client, model, _SYSTEM_RADIOLOGY, 'Accuracy_radiology')
+    df = _process_notes(df, _SYSTEM_RADIOLOGY, 'Accuracy_radiology')
     df['Accuracy_radiology_result'] = df['Accuracy_radiology'].apply(_score_radiology)
     mean = df['Accuracy_radiology_result'].mean()
     std = df['Accuracy_radiology_result'].std()
     return df, mean, std
 
 
-def get_note_accuracy(quiq: pd.DataFrame, model: str, api_key: str):
+def get_note_accuracy(quiq: pd.DataFrame):
     """
     Parameters
     ----------
-    quiq    : QUIQ-format DataFrame
-    model   : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key : OpenAI API key
+    quiq : QUIQ-format DataFrame
 
     Returns
     -------
@@ -198,10 +183,8 @@ def get_note_accuracy(quiq: pd.DataFrame, model: str, api_key: str):
     assert len(quiq[quiq['Mapping_info_1'].isin(['note_rad', 'note_clinical'])]) > 0, \
         'FAIL: No note_rad or note_clinical rows in QUIQ table.'
 
-    client = openai.OpenAI(api_key=api_key)
-
-    df_clinical, _, _ = _run_clinical(quiq, client, model)
-    df_radiology, _, _ = _run_radiology(quiq, client, model)
+    df_clinical, _, _ = _run_clinical(quiq)
+    df_radiology, _, _ = _run_radiology(quiq)
 
     df_c = df_clinical.rename(columns={
         'Accuracy_clinical': 'Accuracy',
@@ -245,14 +228,8 @@ if __name__ == '__main__':
 
     quiq = pd.read_csv(config['quiq_path'])
     save_path = config['save_path']
-    model_ver = config['model_ver']
-    api_key = config['api_key']
 
-    df_clinical, df_radiology, result_df, summary_df = get_note_accuracy(
-        quiq=quiq,
-        model=model_ver,
-        api_key=api_key,
-    )
+    df_clinical, df_radiology, result_df, summary_df = get_note_accuracy(quiq=quiq)
 
     detail_cols = [
         'Mapping_info_1', 'Mapping_info_2', 'Primary_key', 'Original_table_name',

@@ -78,6 +78,41 @@ RETURNS STRING AS (
     ) THEN '1' ELSE '0' END
 );
 
+-- ── 가이드라인 Table 8: note_clinical Mapping_info_2 ─────────────────
+-- 'DS'(Discharge Summary) → 'DIS'
+-- MIMIC-IV discharge 테이블은 'DS' 타입만 존재하므로 나머지는 NULL
+CREATE TEMP FUNCTION _note_clinical_subtype(note_type STRING)
+RETURNS STRING AS (
+    CASE note_type
+        WHEN 'DS' THEN 'DIS'
+        WHEN 'AD' THEN 'ADM'
+        WHEN 'PN' THEN 'ADM'
+        WHEN 'SU' THEN 'SUR'
+        WHEN 'EC' THEN 'EME'
+        ELSE NULL
+    END
+);
+
+-- ── 가이드라인 Table 8: note_rad Mapping_info_2 ──────────────────────
+-- 보고서 텍스트 키워드 기반으로 영상 종류 분류
+-- CXR: 흉부 X-ray / AXR: 복부 X-ray
+-- CCT: 흉부 CT   / ACT: 복부 CT / BCT: 뇌·두부 CT / SCT: 척추 CT
+-- ECH: 심장초음파
+CREATE TEMP FUNCTION _rad_subtype(txt STRING)
+RETURNS STRING AS (
+    CASE
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'chest x.ray|cxr|pa and lateral|portable chest|chest radiograph') THEN 'CXR'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'abdominal x.ray|abdominal radiograph|axr|kub') THEN 'AXR'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'spine x.ray|spinal x.ray|sxr|x.ray.{0,10}spine|spine.{0,10}x.ray') THEN 'SXR'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'ct.{0,10}chest|chest.{0,10}ct|ct.{0,10}thorax|thorax.{0,10}ct') THEN 'CCT'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'ct.{0,10}abdomen|abdomen.{0,10}ct|ct.{0,10}pelvi|pelvi.{0,10}ct') THEN 'ACT'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'ct.{0,10}head|head.{0,10}ct|ct.{0,10}brain|brain.{0,10}ct') THEN 'BCT'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'ct.{0,10}spine|spine.{0,10}ct|ct.{0,10}cervical|ct.{0,10}lumbar') THEN 'SCT'
+        WHEN REGEXP_CONTAINS(LOWER(txt), r'echocardiogram|echocardiograph|cardiac echo') THEN 'ECH'
+        ELSE NULL
+    END
+);
+
 WITH
 
 -- ════════════════════════════════════════════════════════════════════
@@ -1126,7 +1161,7 @@ q_discharge_all AS (
            _text AS _val, 'string' AS _vtype,
            '0' AS _iscat,
            CASE _note_type WHEN 'DS' THEN 'note_clinical' ELSE NULL END AS _m1,
-           CAST(NULL AS STRING) AS _m2, 1 AS _rtype
+           _note_clinical_subtype(_note_type) AS _m2, 1 AS _rtype
     FROM q_discharge_base
     UNION ALL
     -- ② storetime
@@ -1155,6 +1190,7 @@ q_discharge_detail AS (
         ROW_NUMBER() OVER (ORDER BY dd.subject_id, dd.note_id, dd.field_ordinal) - 1 AS _pk,
         dd.subject_id,
         d.hadm_id,
+        COALESCE(CAST(d.note_type    AS STRING), '') AS _note_type,
         COALESCE(CAST(dd.field_name  AS STRING), '') AS _field_name,
         COALESCE(CAST(dd.field_value AS STRING), '') AS _field_value
     FROM `{bq_project}`.MIMIC_IV_NOTE.discharge_detail dd
@@ -1181,7 +1217,7 @@ q_radiology_all AS (
            _text AS _val, 'string' AS _vtype,
            '0' AS _iscat,
            CASE WHEN _note_type IN ('RR', 'AR') THEN 'note_rad' ELSE NULL END AS _m1,
-           CAST(NULL AS STRING) AS _m2, 1 AS _rtype
+           _rad_subtype(_text) AS _m2, 1 AS _rtype
     FROM q_radiology_base
     UNION ALL
     -- ② storetime
@@ -1209,6 +1245,7 @@ q_radiology_detail AS (
         ROW_NUMBER() OVER (ORDER BY rd.subject_id, rd.note_id, rd.field_ordinal) - 1 AS _pk,
         rd.subject_id,
         r.hadm_id,
+        COALESCE(CAST(r.text         AS STRING), '') AS _parent_text,
         COALESCE(CAST(rd.field_name  AS STRING), '') AS _field_name,
         COALESCE(CAST(rd.field_value AS STRING), '') AS _field_value
     FROM `{bq_project}`.MIMIC_IV_NOTE.radiology_detail rd
@@ -1668,7 +1705,7 @@ SELECT _pk, '', 'DISCHARGE_DETAIL', _field_name, NULL, _field_value, NULL,
        'string', '0', '', '', '',
        CAST(subject_id AS STRING),
        COALESCE(CAST(hadm_id AS STRING), ''), '',
-       'note_clinical', NULL
+       'note_clinical', _note_clinical_subtype(_note_type)
 FROM q_discharge_detail
 WHERE _field_value != ''
 UNION ALL
@@ -1682,7 +1719,7 @@ SELECT _pk, '', 'RADIOLOGY_DETAIL', _field_name, NULL, _field_value, NULL,
        'string', '0', '', '', '',
        CAST(subject_id AS STRING),
        COALESCE(CAST(hadm_id AS STRING), ''), '',
-       'note_rad', NULL
+       'note_rad', _rad_subtype(_parent_text)
 FROM q_radiology_detail
 WHERE _field_value != ''
 

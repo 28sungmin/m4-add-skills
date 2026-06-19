@@ -2,7 +2,7 @@ import re
 import yaml
 import argparse
 import pandas as pd
-import openai
+import subprocess
 
 SYSTEM_CONTENT = """
     Goal: To check whether terms that represent the **same real-world meaning** are expressed consistently across the dataset.
@@ -68,29 +68,22 @@ def _filter_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return df_filtered
 
 
-def _llm_chat(client, model, variable_name, description, user_content, temperature=0, max_tokens=1000, n=1):
+def _llm_chat(variable_name, description, user_content):
+    prompt = (
+        f"Variable name:{variable_name}\n"
+        f"Description: {description}\n"
+        f"Only group the values below\n"
+        f"Values:{user_content}"
+    )
     try:
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": SYSTEM_CONTENT},
-                {"role": "user", "content": (
-                    f"Variable name:{variable_name}\n"
-                    f"Description: {description}\n"
-                    f"Only group the values below\n"
-                    f"Values:{user_content}"
-                )}
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-            n=n
+        result = subprocess.run(
+            ['claude', '-p', prompt, '--system-prompt', SYSTEM_CONTENT],
+            capture_output=True, text=True, timeout=60
         )
-        choice = response.choices[0]
-        if choice.message.content is None:
-            print(f"❌ Invalid LLM Response (Variable: {variable_name}) → ❌ Cause: {choice.finish_reason}")
+        if result.returncode != 0 or not result.stdout.strip():
+            print(f"❌ Invalid LLM Response (Variable: {variable_name})")
             return None
-        return [c.message.content for c in response.choices]
-
+        return [result.stdout.strip()]
     except Exception as e:
         print(f"❌ LLM call failed (Variable: {variable_name}) → {type(e).__name__}: {e}")
         return None
@@ -126,11 +119,11 @@ def _parse_llm_response_by_line(response: str, unique_array) -> list:
         return []
 
 
-def _get_category_counts(df, current_identifier, unique_array, description, client, model, attempt=1):
+def _get_category_counts(df, current_identifier, unique_array, description, attempt=1):
     unique_array = df[df['identifier'] == current_identifier]['Value'].dropna().unique()
     user_content = ', '.join(unique_array.tolist())
 
-    result = _llm_chat(client, model, current_identifier, description, user_content)
+    result = _llm_chat(current_identifier, description, user_content)
     if result is None:
         print(f"⛔ No LLM response, excluded from evaluation → {current_identifier}")
         return [], {}, False
@@ -147,7 +140,7 @@ def _get_category_counts(df, current_identifier, unique_array, description, clie
 
     if not valid and attempt < 5:
         print("No valid data matched with LLM categories, retrying classification...")
-        return _get_category_counts(df, current_identifier, unique_array, description, client, model, attempt + 1)
+        return _get_category_counts(df, current_identifier, unique_array, description, attempt + 1)
 
     return array_2d, category_counts, valid
 
@@ -179,18 +172,14 @@ def _calculate_inner_consistency(array_2d, df) -> float | None:
     return round(total_weighted_percentage / total_weight, 3)
 
 
-def get_cross_sectional_consistency(quiq: pd.DataFrame, via: pd.DataFrame, model: str, api_key: str):
+def get_cross_sectional_consistency(quiq: pd.DataFrame, via: pd.DataFrame):
     """
     Parameters
     ----------
-    quiq     : QUIQ-format DataFrame
-    via      : Variable Information Annotation — must have columns:
-               Original_table_name, Variable_name, Description
-    model    : OpenAI model name (e.g. 'gpt-4o', 'gpt-4o-mini')
-    api_key  : OpenAI API key
+    quiq : QUIQ-format DataFrame
+    via  : Variable Information Annotation — must have columns:
+           Original_table_name, Variable_name, Description
     """
-    client = openai.OpenAI(api_key=api_key)
-
     df = quiq.copy()
     df['Variable_type'] = df['Variable_type'].astype(str)
 
@@ -217,7 +206,7 @@ def get_cross_sectional_consistency(quiq: pd.DataFrame, via: pd.DataFrame, model
 
         description = description_map.get(current_identifier, "No description available")
         array_2d, category_counts, valid = _get_category_counts(
-            target_df, current_identifier, unique_array, description, client, model
+            target_df, current_identifier, unique_array, description
         )
         if not valid:
             continue
@@ -264,10 +253,7 @@ if __name__ == '__main__':
     quiq = pd.read_csv(config['quiq_path'])
     via = pd.read_csv(config['via_path'])
     save_path = config['save_path']
-    model_ver = config['model_ver']
-    api_key = config['api_key']
-
-    average_consistency, results_df, detail = get_cross_sectional_consistency(quiq, via, model_ver, api_key)
+    average_consistency, results_df, detail = get_cross_sectional_consistency(quiq, via)
 
     with open(save_path + '/cross_sectional_consistency_total.txt', 'w', encoding='utf-8') as f:
         f.write(f'Average Cross Sectional Consistency (%) = {round(average_consistency * 100, 2)}\n')

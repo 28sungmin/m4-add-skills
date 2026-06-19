@@ -56,8 +56,8 @@ Converts all MIMIC-IV tables (hosp, icu, ed schemas) into the QUIQ long-format t
 | 7 | Drug names (medication, drug, name) | `prescription` | `drug` |
 | 7 | Prescription info (dose, route, frequency) | `prescription` | `prescription_info` |
 | 8 | Procedure events (procedureevents) | `procedure` | NULL |
-| — | Clinical notes (discharge summaries) | `note_clinical` | NULL |
-| — | Radiology reports | `note_rad` | NULL |
+| — | Clinical notes (discharge summaries) | `note_clinical` | `DIS` / `ADM` / `EME` / `SUR` / NULL |
+| — | Radiology reports | `note_rad` | `CXR` / `AXR` / `SXR` / `CCT` / `ACT` / `BCT` / `SCT` / `ECH` / NULL |
 | — | All others | NULL | NULL |
 
 ## Conversion Strategy by Table Type

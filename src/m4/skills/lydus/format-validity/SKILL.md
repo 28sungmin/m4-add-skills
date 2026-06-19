@@ -13,12 +13,9 @@ parameters:
   save_path:
     description: Directory path to save output files.
     type: string
-  model_ver:
-    description: "OpenAI model name for LLM fallback (e.g. 'gpt-4o-mini'). Optional."
-    type: string
-  api_key:
-    description: OpenAI API key for LLM fallback. Optional — omit to use rule-based matching only.
-    type: string
+  use_llm:
+    description: "If true (default), uses Claude CLI as fallback for unknown code types. Set false to use rule-based matching only."
+    type: boolean
 ---
 
 # Format Validity
@@ -52,7 +49,7 @@ Unknown code types → `Is_valid = NULL` (SQL) or `Is_valid = False` (Python wit
    Variable_name + VIA Description 에서 키워드 탐지 → regex 반환
 
 2. LLM fallback (선택, llm_define_regex)
-   규칙으로 미분류 시 OpenAI에 코드명 + regex 질의
+   규칙으로 미분류 시 Claude CLI에 코드명 + regex 질의
 
 3. regex 검증
    각 Value에 str.match(regex) 적용
@@ -107,8 +104,7 @@ print(f"Saved {len(df):,} rows → {save_path}")
 quiq_path:  /path/to/quiq.csv
 via_path:   /path/to/via.csv
 save_path:  /path/to/output
-model_ver:  gpt-4o-mini   # 생략 가능
-api_key:    sk-...        # 생략 시 LLM fallback 없음
+use_llm:    true   # false 로 설정하면 LLM fallback 없음
 ```
 
 ```bash

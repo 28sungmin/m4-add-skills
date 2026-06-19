@@ -1,6 +1,6 @@
 ---
 name: note-accuracy
-description: Evaluate accuracy of unstructured clinical notes and radiology reports in a QUIQ-format table using LLM (OpenAI). Detects diagnostic, procedural, drug, demographic, and date errors in clinical notes; identifies critical errors in radiology impressions. Requires OpenAI API. Use for LYDUS data quality assessment of note_clinical and note_rad variables.
+description: Evaluate accuracy of unstructured clinical notes and radiology reports in a QUIQ-format table using Claude CLI. Detects diagnostic, procedural, drug, demographic, and date errors in clinical notes; identifies critical errors in radiology impressions. No API key required. Use for LYDUS data quality assessment of note_clinical and note_rad variables.
 tier: community
 category: lydus
 parameters:
@@ -10,17 +10,11 @@ parameters:
   save_path:
     description: Directory path to save output files.
     type: string
-  model_ver:
-    description: OpenAI model name (e.g. 'gpt-4o-mini', 'gpt-4o').
-    type: string
-  api_key:
-    description: OpenAI API key.
-    type: string
 ---
 
 # Note Accuracy
 
-Evaluates the **accuracy of unstructured clinical notes and radiology reports** by sending each note to an LLM (OpenAI) for error detection. Covers clinical notes (`note_clinical`) and radiology reports (`note_rad`).
+Evaluates the **accuracy of unstructured clinical notes and radiology reports** by sending each note to Claude CLI for error detection. Covers clinical notes (`note_clinical`) and radiology reports (`note_rad`).
 
 ## When to Use This Skill
 
@@ -30,7 +24,7 @@ Evaluates the **accuracy of unstructured clinical notes and radiology reports** 
 
 ## SQL Support
 
-**Not applicable.** Requires OpenAI LLM for note review.
+**Not applicable.** Requires Claude CLI for note review.
 
 ## Filtering Logic
 
@@ -98,9 +92,7 @@ from scripts.note_accuracy import get_note_accuracy
 quiq = pd.read_csv("/path/to/quiq.csv")
 
 df_clinical, df_radiology, result_df, summary_df = get_note_accuracy(
-    quiq=quiq,
-    model="gpt-4o-mini",
-    api_key="sk-..."
+    quiq=quiq
 )
 
 mean_accuracy = round(result_df['Accuracy_results'].mean(), 2)
@@ -113,8 +105,6 @@ print(f"Note Accuracy (%) = {mean_accuracy}")
 # config.yaml
 quiq_path: /path/to/quiq.csv
 save_path: /path/to/output
-model_ver: gpt-4o-mini
-api_key:   sk-...
 ```
 
 ```bash
@@ -123,7 +113,7 @@ python scripts/note_accuracy.py --config config.yaml
 
 ## Critical Notes
 
-1. **Threading with timeout** — each LLM call runs in a separate thread with 60-second timeout. Failed rows are retried once.
+1. **Subprocess with timeout** — each Claude CLI call runs via `subprocess.run` with 60-second timeout. Failed rows return an empty result.
 
 2. **Clinical score logic** — only Diagnostic + Procedure categories count toward the clinical note score (not spelling, drug, demographic, date). This matches the original LYDUS specification.
 
@@ -134,7 +124,7 @@ python scripts/note_accuracy.py --config config.yaml
    - `_run_clinical`과 `_run_radiology`에 중복된 `api_call`/`process_rows` 내부 함수 → `_process_notes` 공통 함수로 통합
    - `get_unstructured_accuracy` → `get_note_accuracy` 로 명칭 변경 (스킬 이름과 일관성)
 
-5. **Dependencies** — `openai`, `pandas`, `seaborn`, `matplotlib`, `tqdm`
+5. **Dependencies** — `pandas`, `seaborn`, `matplotlib`, `tqdm` (LLM: Claude CLI via subprocess)
 
 ## References
 

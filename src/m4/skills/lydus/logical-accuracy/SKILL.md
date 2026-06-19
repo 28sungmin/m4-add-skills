@@ -1,6 +1,6 @@
 ---
 name: logical-accuracy
-description: Detect logical outliers in clinical variables using a multi-model ensemble (Quantile Regression + Gradient Boosting + Autoencoder for numeric; OneClassSVM + IsolationForest + Autoencoder for categorical). Requires OpenAI API. Use for LYDUS data quality assessment of logical consistency in event, diagnosis, prescription, and procedure variables.
+description: Detect logical outliers in clinical variables using a multi-model ensemble (Quantile Regression + Gradient Boosting + Autoencoder for numeric; OneClassSVM + IsolationForest + Autoencoder for categorical). Uses Claude CLI (no API key required). Use for LYDUS data quality assessment of logical consistency in event, diagnosis, prescription, and procedure variables.
 tier: community
 category: lydus
 parameters:
@@ -9,12 +9,6 @@ parameters:
     type: string
   save_path:
     description: Directory path to save output files (logical_accuracy_summary.csv, logical_accuracy_total.txt, outlier_*.csv).
-    type: string
-  model_ver:
-    description: OpenAI model name (e.g. 'gpt-4o-mini').
-    type: string
-  api_key:
-    description: OpenAI API key.
     type: string
   operation_type_manual:
     description: "True = manually specify target_variable; False = automatic top-N by count."
@@ -43,7 +37,7 @@ Detects **logical outliers** in clinical variables using a multi-model anomaly d
 ## SQL Support
 
 **Not applicable.** This skill requires:
-- LLM (OpenAI) calls for sex/birthdate variable identification and correlated-variable recommendation
+- Claude CLI calls for sex/birthdate variable identification and correlated-variable recommendation
 - statsmodels Quantile Regression
 - sklearn (GBR, OneClassSVM, IsolationForest, RobustScaler)
 - PyTorch Autoencoder with early stopping
@@ -111,8 +105,6 @@ quiq = pd.read_csv("/path/to/quiq.csv")
 
 var_list_target, dict_total, dict_outlier = get_logical_accuracy(
     quiq=quiq,
-    model_ver="gpt-4o-mini",
-    api_key="sk-...",
     operation_type_manual=False,
     target_variable="",        # ignored when operation_type_manual=False
     automatic_num=5,
@@ -126,8 +118,6 @@ var_list_target, dict_total, dict_outlier = get_logical_accuracy(
 # config.yaml
 quiq_path:            /path/to/quiq.csv
 save_path:            /path/to/output
-model_ver:            gpt-4o-mini
-api_key:              sk-...
 operation_type_manual: false
 target_variable:      ""       # only needed when operation_type_manual=true
 automatic_num:        5
@@ -150,7 +140,7 @@ python scripts/logical_accuracy.py --config config.yaml
 
 5. **Memory management** — `gc.collect()` is called after each major step. For large QUIQ tables (millions of rows), consider limiting `automatic_num`.
 
-6. **Dependencies** — `openai`, `statsmodels`, `scikit-learn`, `torch`, `numpy`, `pandas`
+6. **Dependencies** — `statsmodels`, `scikit-learn`, `torch`, `numpy`, `pandas` (LLM: Claude CLI via subprocess)
 
 ## References
 

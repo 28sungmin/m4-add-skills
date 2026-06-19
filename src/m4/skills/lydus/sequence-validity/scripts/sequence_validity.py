@@ -4,7 +4,7 @@ import yaml
 import argparse
 import numpy as np
 import pandas as pd
-import openai
+import subprocess
 
 
 _SYSTEM_PROMPT = """
@@ -37,26 +37,25 @@ Output Format: timepoint_pairs = [
 """
 
 
-def _llm_identify_pairs(client, model: str, unique_variables_string: str) -> list:
-    """Ask LLM to identify (start, end) date-variable pairs from the identifier list."""
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": unique_variables_string},
-        ],
-        temperature=0,
-        max_tokens=1200,
-        top_p=1,
-        frequency_penalty=0,
-        presence_penalty=0,
+def _llm_identify_pairs(unique_variables_string: str) -> list:
+    """Ask Claude CLI to identify (start, end) date-variable pairs from the identifier list."""
+    result = subprocess.run(
+        ['claude', '-p', unique_variables_string, '--system-prompt', _SYSTEM_PROMPT],
+        capture_output=True, text=True, timeout=180
     )
-    gpt_output = response.choices[0].message.content
+    gpt_output = result.stdout.strip() if result.returncode == 0 else ''
     print(f'\nLLM output:\n{gpt_output}\n')
 
+    import re
     try:
-        pairs_str = gpt_output.split('=', 1)[1].strip()
-        pairs = ast.literal_eval(pairs_str)
+        # Extract the list from 'timepoint_pairs = [...]' regardless of surrounding markdown/text
+        match = re.search(r'timepoint_pairs\s*=\s*(\[.*?\])', gpt_output, re.DOTALL)
+        if match:
+            pairs = ast.literal_eval(match.group(1))
+        else:
+            # Fallback: split on first '=' and parse
+            pairs_str = gpt_output.split('=', 1)[1].strip()
+            pairs = ast.literal_eval(pairs_str)
         if not isinstance(pairs, list):
             raise ValueError(f'Expected list, got {type(pairs)}')
         return pairs
@@ -113,13 +112,11 @@ def _validate_sequence(dataset: pd.DataFrame, timepoint_pairs: list) -> pd.DataF
     return pd.concat(result_rows, ignore_index=True)
 
 
-def get_sequence_validity(quiq: pd.DataFrame, model: str, api_key: str):
+def get_sequence_validity(quiq: pd.DataFrame):
     """
     Parameters
     ----------
-    quiq    : QUIQ-format DataFrame
-    model   : OpenAI model name (e.g. 'gpt-4o-mini')
-    api_key : OpenAI API key
+    quiq : QUIQ-format DataFrame
 
     Returns
     -------
@@ -137,8 +134,7 @@ def get_sequence_validity(quiq: pd.DataFrame, model: str, api_key: str):
     unique_names = date_df['Identifier'].unique().tolist()
     unique_variables_string = ', '.join(unique_names)
 
-    client = openai.OpenAI(api_key=api_key)
-    timepoint_pairs = _llm_identify_pairs(client, model, unique_variables_string)
+    timepoint_pairs = _llm_identify_pairs(unique_variables_string)
     print(f'Identified pairs: {timepoint_pairs}')
 
     df_total = _validate_sequence(date_df, timepoint_pairs)
@@ -181,11 +177,7 @@ if __name__ == '__main__':
     quiq = pd.read_csv(config['quiq_path'])
     save_path = config['save_path']
 
-    df_total, df_summary = get_sequence_validity(
-        quiq=quiq,
-        model=config['model_ver'],
-        api_key=config['api_key'],
-    )
+    df_total, df_summary = get_sequence_validity(quiq=quiq)
 
     total_num = df_summary['Total_num'].sum()
     invalid_num = df_summary['Invalid_num'].sum()

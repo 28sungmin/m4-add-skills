@@ -6,7 +6,7 @@ import argparse
 import contextlib
 import numpy as np
 import pandas as pd
-import openai
+import subprocess
 
 # ── Skill dependency imports ──────────────────────────────────────────────────
 # Each sibling skill's scripts/ dir is added to sys.path so its module is
@@ -55,8 +55,18 @@ def _make_var_list_text(var_list) -> str:
     return ', '.join(str(v) for v in var_list)
 
 
-def _llm_ask_column(client, model_ver: str, var_list_text: str, target_concept: str):
-    """Ask LLM to pick the single variable most relevant to target_concept."""
+def _call_claude(system_prompt: str, user_content: str, timeout: int = 60) -> str:
+    result = subprocess.run(
+        ['claude', '-p', user_content, '--system-prompt', system_prompt],
+        capture_output=True, text=True, timeout=timeout
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f'Claude CLI error: {result.stderr}')
+    return result.stdout.strip()
+
+
+def _llm_ask_column(var_list_text: str, target_concept: str):
+    """Ask Claude to pick the single variable most relevant to target_concept."""
     system_prompt = (
         f'You are a medical data expert.\n'
         f'A list of variable names will be provided.\n'
@@ -65,15 +75,7 @@ def _llm_ask_column(client, model_ver: str, var_list_text: str, target_concept: 
         f'Return it **exactly as it appears** in the provided list.\n'
         f'If no appropriate variable is found, respond with \'None\'.'
     )
-    response = client.chat.completions.create(
-        model=model_ver,
-        messages=[
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': f'List of variable names : {var_list_text}'},
-        ],
-        temperature=0,
-    )
-    result = response.choices[0].message.content.strip()
+    result = _call_claude(system_prompt, f'List of variable names : {var_list_text}')
     return None if result == 'None' else result
 
 
@@ -106,7 +108,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     gc.collect()
     try:
         with _suppress():
-            _, df_s = get_date_validity(quiq, model_ver, api_key)
+            _, df_s = get_date_validity(quiq)
         total = df_s['Total_date'].sum()
         invalid = df_s['Invalid_date'].sum()
         scores[('Date Validity', g)] = round((total - invalid) / total * 100, 2)
@@ -119,7 +121,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     gc.collect()
     try:
         with _suppress():
-            _, df_s = get_code_validity(quiq, via, model_ver, api_key)
+            _, df_s = get_code_validity(quiq, via)
         total = df_s['Total_code'].sum()
         invalid = df_s['Invalid_code'].sum()
         scores[('Format Validity', g)] = round((total - invalid) / total * 100, 2)
@@ -132,7 +134,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     gc.collect()
     try:
         with _suppress():
-            _, df_s = get_sequence_validity(quiq, model_ver, api_key)
+            _, df_s = get_sequence_validity(quiq)
         total = df_s['Total_num'].sum()
         invalid = df_s['Invalid_num'].sum()
         scores[('Sequence Validity', g)] = round((total - invalid) / total * 100, 2)
@@ -159,7 +161,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     try:
         with _suppress():
             var_list_target, dict_total, dict_outlier = get_logical_accuracy(
-                quiq, model_ver, api_key,
+                quiq,
                 config.get('operation_type_manual', False),
                 config.get('target_variable', ''),
                 config.get('automatic_num', 5),
@@ -177,7 +179,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     gc.collect()
     try:
         with _suppress():
-            avg_consistency, _, _ = get_cross_sectional_consistency(quiq, via, model_ver, api_key)
+            avg_consistency, _, _ = get_cross_sectional_consistency(quiq, via)
         scores[('Cross Sectional Consistency', g)] = round(avg_consistency * 100, 2)
     except Exception as e:
         print(f'[ERR: {e}]', end=' ')
@@ -270,7 +272,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     try:
         with _suppress():
             # get_note_fidelity returns 8 values; we need result_df (index 2)
-            _, _, result_df, *_ = get_note_fidelity(quiq, model_ver, api_key)
+            _, _, result_df, *_ = get_note_fidelity(quiq)
         scores[('Note Fidelity', g)] = round(result_df['Fidelity_results'].mean(), 2)
     except Exception as e:
         print(f'[ERR: {e}]', end=' ')
@@ -281,7 +283,7 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     gc.collect()
     try:
         with _suppress():
-            _, _, result_df, _ = get_note_accuracy(quiq, model_ver, api_key)
+            _, _, result_df, _ = get_note_accuracy(quiq)
         scores[('Note Accuracy', g)] = round(result_df['Accuracy_results'].mean(), 2)
     except Exception as e:
         print(f'[ERR: {e}]', end=' ')
@@ -350,17 +352,14 @@ def get_bias_detection(
     df_age_results   : DataFrame (metrics × age groups + Mean + GDI)
     Empty DataFrames are returned when a grouping variable is not found.
     """
-    client = openai.OpenAI(api_key=config['api_key'])
-    model_ver = config['model_ver']
-
     # ── Identify demographic columns via LLM ─────────────────────────────────
     print('Identify demographic grouping variables')
     var_list = quiq['Variable_name'].unique().tolist()
     var_list_text = _make_var_list_text(var_list)
 
-    sex_col = _llm_ask_column(client, model_ver, var_list_text, 'biological sex')
-    race_col = _llm_ask_column(client, model_ver, var_list_text, 'race')
-    birth_col = _llm_ask_column(client, model_ver, var_list_text, 'date of birth')
+    sex_col = _llm_ask_column(var_list_text, 'biological sex')
+    race_col = _llm_ask_column(var_list_text, 'race')
+    birth_col = _llm_ask_column(var_list_text, 'date of birth')
     print(f'  Sex   → {sex_col}')
     print(f'  Race  → {race_col}')
     print(f'  Birth → {birth_col}')
@@ -448,8 +447,6 @@ if __name__ == '__main__':
     save_path = config['save_path']
 
     run_config = {
-        'model_ver':            config.get('model_ver', 'gpt-4o-mini'),
-        'api_key':              config['api_key'],
         'save_path':            save_path,
         'operation_type_manual': config.get('operation_type_manual', False),
         'target_variable':      config.get('target_variable', ''),

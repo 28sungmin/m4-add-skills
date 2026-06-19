@@ -10,12 +10,9 @@ parameters:
   save_path:
     description: Directory path to save output files.
     type: string
-  model_ver:
-    description: "OpenAI model name for LLM fallback (e.g. 'gpt-4o-mini'). Optional — omit to use SQL-only mode."
-    type: string
-  api_key:
-    description: OpenAI API key for LLM fallback. Optional — omit to use SQL-only mode.
-    type: string
+  use_llm:
+    description: "If true (default), uses Claude CLI for ambiguous date fallback. Set false to skip LLM and use rule-based only."
+    type: boolean
 ---
 
 # Date Validity
@@ -44,7 +41,7 @@ Validates date values in a QUIQ-format table. For each date-related value, deter
 ```
 1. dateutil.parse()          → 표준 날짜 형식 (ISO, US, EU 등)
 2. _valid_date_custom()      → 한국어 날짜 (e.g. "2024년 3월 15일")
-3. LLM fallback (선택)       → 위 두 방법 실패 시 OpenAI에 yes/no 질의
+3. LLM fallback (선택)       → 위 두 방법 실패 시 Claude CLI에 yes/no 질의
 ```
 
 **SQL 버전** (`duckdb.sql`) 은 1번(TRY_STRPTIME 7종) + 2번(regex) 만 지원. LLM fallback 없음.
@@ -101,8 +98,7 @@ from scripts.date_validity import get_date_validity
 quiq = pd.read_csv("/path/to/quiq.csv")
 valid_results_df, summary_df = get_date_validity(
     quiq=quiq,
-    model="gpt-4o-mini",
-    api_key="sk-..."   # None 으로 설정하면 LLM fallback 비활성화
+    use_llm=True   # False 로 설정하면 LLM fallback 비활성화
 )
 ```
 
@@ -112,8 +108,7 @@ valid_results_df, summary_df = get_date_validity(
 # config.yaml
 quiq_path:  /path/to/quiq.csv
 save_path:  /path/to/output
-model_ver:  gpt-4o-mini   # 생략 가능
-api_key:    sk-...        # 생략 가능 (생략 시 LLM fallback 없음)
+use_llm:    true   # false 로 설정하면 LLM fallback 없음
 ```
 
 ```bash
@@ -126,9 +121,9 @@ python scripts/date_validity.py --config config.yaml
 
 2. **원본 코드 버그 수정** — `_gpt_chat` 반환값이 `list`인데 `if "no" in result`로 list 전체를 검색했음 → `result[0]`로 수정.
 
-3. **LLM 비용** — LLM fallback은 표준 파싱 실패 시에만 호출되므로 MIMIC-IV에서는 거의 호출되지 않음.
+3. **LLM 호출 방식** — LLM fallback은 표준 파싱 실패 시에만 Claude CLI(`claude -p`)를 통해 호출됨. MIMIC-IV에서는 거의 호출되지 않음.
 
-4. **api_key=None** — Python 버전에서 `api_key=None` 으로 설정하면 LLM fallback 없이 실행 가능.
+4. **use_llm=False** — Python 버전에서 `use_llm=False` 로 설정하면 LLM fallback 없이 규칙 기반으로만 실행 가능.
 
 ## References
 
