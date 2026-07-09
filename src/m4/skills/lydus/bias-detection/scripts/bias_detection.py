@@ -86,8 +86,6 @@ def _run_all_metrics(g, quiq: pd.DataFrame, via: pd.DataFrame, config: dict) -> 
     Errors are caught per-metric and stored as np.nan.
     """
     scores = {}
-    model_ver = config['model_ver']
-    api_key = config['api_key']
     save_path = config.get('save_path', '.')
 
     # ── Range Validity ────────────────────────────────────────────────────────
@@ -389,18 +387,23 @@ def get_bias_detection(
     # ── Age calculation ───────────────────────────────────────────────────────
     if 'BirthDate' in df_merged.columns:
         print('Calculate age groups')
-        df_merged['BirthDate'] = pd.to_datetime(df_merged['BirthDate'], errors='coerce')
-        df_merged['Event_date'] = pd.to_datetime(df_merged['Event_date'], errors='coerce')
-        df_merged['Age_Value'] = (
-            df_merged['Event_date'].dt.year - df_merged['BirthDate'].dt.year
-            - (
-                (df_merged['Event_date'].dt.month < df_merged['BirthDate'].dt.month)
-                | (
-                    (df_merged['Event_date'].dt.month == df_merged['BirthDate'].dt.month)
-                    & (df_merged['Event_date'].dt.day < df_merged['BirthDate'].dt.day)
+        age_numeric = pd.to_numeric(df_merged['BirthDate'], errors='coerce')
+        if age_numeric.notna().mean() > 0.5:
+            # BirthDate column actually contains numeric age values (e.g. anchor_age)
+            df_merged['Age_Value'] = age_numeric
+        else:
+            df_merged['BirthDate'] = pd.to_datetime(df_merged['BirthDate'], errors='coerce')
+            df_merged['Event_date'] = pd.to_datetime(df_merged['Event_date'], errors='coerce')
+            df_merged['Age_Value'] = (
+                df_merged['Event_date'].dt.year - df_merged['BirthDate'].dt.year
+                - (
+                    (df_merged['Event_date'].dt.month < df_merged['BirthDate'].dt.month)
+                    | (
+                        (df_merged['Event_date'].dt.month == df_merged['BirthDate'].dt.month)
+                        & (df_merged['Event_date'].dt.day < df_merged['BirthDate'].dt.day)
+                    )
                 )
             )
-        )
         df_merged['Age_Group'] = pd.cut(
             df_merged['Age_Value'],
             bins=[0, 10, 20, 30, 40, 50, 60, 70, 80, 120],

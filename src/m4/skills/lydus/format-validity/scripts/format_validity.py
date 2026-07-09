@@ -1,4 +1,6 @@
 import gc
+import os
+import re
 import yaml
 import argparse
 import pandas as pd
@@ -41,6 +43,67 @@ def match_code_regex(target_name: str, target_desc: str):
     return code_name, REGEX_CACHE[code_name]
 
 
+def _llm_call(system_prompt: str, user_prompt: str) -> str:
+    """Call LLM via Anthropic SDK (preferred) or claude CLI subprocess (fallback)."""
+    api_key = os.environ.get('ANTHROPIC_API_KEY', '')
+    if api_key:
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=api_key)
+            msg = client.messages.create(
+                model='claude-haiku-4-5-20251001',
+                max_tokens=256,
+                system=system_prompt,
+                messages=[{'role': 'user', 'content': user_prompt}],
+            )
+            return msg.content[0].text.strip()
+        except Exception as e:
+            print(f"  [SDK error] {e} — falling back to CLI")
+
+    result = subprocess.run(
+        ['claude', '-p', user_prompt, '--system-prompt', system_prompt],
+        capture_output=True, text=True, timeout=120,
+    )
+    return result.stdout.strip() if result.returncode == 0 else 'None'
+
+
+def _extract_regex(text: str) -> str:
+    """Extract the first valid regex pattern from an LLM response."""
+    # 코드블록 안의 패턴 우선 추출 (```...``` 또는 `...`)
+    code_block = re.search(r'```[^\n]*\n?(.*?)```', text, re.DOTALL)
+    if code_block:
+        candidate = code_block.group(1).strip().splitlines()[0].strip()
+        if candidate:
+            return candidate
+
+    # ^ 로 시작하는 첫 번째 줄 추출
+    for line in text.splitlines():
+        line = line.strip().strip('`').strip()
+        if line.startswith('^'):
+            return line
+
+    # 백틱으로 감싸진 패턴
+    backtick = re.search(r'`([^`]+)`', text)
+    if backtick:
+        return backtick.group(1).strip()
+
+    return text.strip()
+
+
+def _extract_code_name(text: str) -> str:
+    """Extract a clean code name from an LLM response (strip markdown)."""
+    # 마크다운 bold/italic 제거
+    text = re.sub(r'\*+', '', text)
+    # 괄호 설명 제거
+    text = re.sub(r'\(.*?\)', '', text)
+    # 첫 번째 비어있지 않은 줄의 첫 단어
+    for line in text.splitlines():
+        line = line.strip().strip('`').strip()
+        if line and line.lower() != 'none':
+            return line.split()[0]
+    return 'None'
+
+
 def llm_define_regex(target_name: str, target_description: str):
     """LLM fallback: identify code type and generate regex for unknown variables."""
     system_prompt_1 = (
@@ -51,29 +114,33 @@ def llm_define_regex(target_name: str, target_description: str):
         "Respond with only the name of the code category, no additional explanation.\n"
         "If the description does not clearly correspond to any known code category, respond with 'None'"
     )
-    result = subprocess.run(
-        ['claude', '-p', f"Name of a variable : {target_name}\nDescription of a variable : {target_description}",
-         '--system-prompt', system_prompt_1],
-        capture_output=True, text=True, timeout=30
-    )
-    code_name = result.stdout.strip() if result.returncode == 0 else 'None'
-    if code_name == 'None':
+    raw_code = _llm_call(system_prompt_1,
+                         f"Name of a variable : {target_name}\nDescription of a variable : {target_description}")
+    code_name = _extract_code_name(raw_code)
+    if not code_name or code_name.lower() == 'none':
         return None, None
 
     system_prompt_2 = (
-        "You are medical coding expert.\n"
+        "You are a medical coding expert.\n"
         "You will be given the name of a standardized medical code category (e.g. ICD-9, SNOMED-CT).\n"
-        "Your task is to return a regular expression that accurately captures the **typical format** "
-        "of codes within the specified category.\n"
-        "Respond with only the regular expression, no additional explanation.\n"
-        "If the format of the given category is unknown or cannot be generalized, respond with 'None'"
+        "Your task is to return a SINGLE regular expression that captures the typical format of codes "
+        "in that category.\n"
+        "Rules:\n"
+        "- Output ONLY the regex pattern, starting with ^ and ending with $\n"
+        "- No explanation, no markdown, no code block, no extra text\n"
+        "- If the format cannot be generalized, respond with the word: None"
     )
-    result = subprocess.run(
-        ['claude', '-p', f"Medical code category : {code_name}", '--system-prompt', system_prompt_2],
-        capture_output=True, text=True, timeout=30
-    )
-    regex_for_target = result.stdout.strip() if result.returncode == 0 else 'None'
-    if regex_for_target == 'None':
+    raw_regex = _llm_call(system_prompt_2, f"Medical code category : {code_name}")
+    if not raw_regex or raw_regex.strip().lower() == 'none':
+        return code_name, None
+
+    regex_for_target = _extract_regex(raw_regex)
+
+    # 유효한 regex인지 검증
+    try:
+        re.compile(regex_for_target)
+    except re.PatternError:
+        print(f"  [WARN] Invalid regex from LLM for '{code_name}': {regex_for_target!r}")
         return code_name, None
 
     return code_name, regex_for_target

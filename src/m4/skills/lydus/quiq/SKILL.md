@@ -31,7 +31,7 @@ Converts all MIMIC-IV tables (hosp, icu, ed schemas) into the QUIQ long-format t
 | `Variable_name` | Column name or d_items/d_labitems label |
 | `Event_date` | Measurement timestamp (NULL for non-event variables) |
 | `Value` | String representation of the value |
-| `Unit` | Unit of measurement |
+| `Unit` | Unit of measurement — **only** from an explicit unit/uom field in the source (e.g. `valueuom`, `amountuom`, d_items `unitname`). Empty (`''`) when the source has no unit field. **Never** infer from the variable name, the value, or clinical knowledge. |
 | `Variable_type` | `timestamp` / `numeric` / `string` / `` (empty) |
 | `Is_categorical` | `'1'` if categorical, `'0'` otherwise |
 | `Recorder` | (empty in MIMIC) |
@@ -212,6 +212,20 @@ print(f"Saved {len(df):,} rows → {output_path}")
 4. **d_items JOIN** — ICU event tables use `COALESCE(di.label, CAST(itemid AS STRING))` so the Variable_name always has a human-readable label even if d_items has no matching row.
 
 5. **_var_type detection order** — timestamp is checked before numeric. A value like `"2150-05-01 00:00:00"` is classified as `timestamp`, not `numeric`.
+
+6. **Unit comes only from the data, never from inference** — Populate `Unit` solely from an explicit unit-of-measurement field in the source (MIMIC `valueuom` / `amountuom` / `doseuom`, or a d_items `unitname`). If the source record has no unit field, `Unit` MUST be empty (`''`). Do NOT derive a unit from the variable name, the value, or domain knowledge — e.g. do not tag an `LDL` column as `mg/dL` or an `SBP` column as `mmHg` just because those are the usual units. Units are a property of the source data, not of the concept.
+
+7. **Primary_key ordering is numeric** — `Primary_key` is an integer record index (0-based within each source table). When ordering the output, sort by the integer value, not its string form; a lexicographic sort yields `0,1,10,100,2,…` and scrambles records. Within one record keep the variables in the source column order.
+
+8. **Non-MIMIC / generic wide tables** — The same QUIQ schema and Mapping Rules apply to any wide source table, not only MIMIC. Treat it as §① Wide Tables: UNPIVOT each column into one QUIQ row sharing the record's `Primary_key`, map each column via the Mapping Rules table, put the source row's subject/entity id into `Patient_id`, and leave `Variable_ID`, `Recorder*`, `Ground_truth`, and `Unit` (when the source has no unit field) empty. Columns that match no explicit rule fall through to "All others" → `Mapping_info_1/2` empty.
+
+9. **Flat clinical tables → every clinical column is an `event`** — When the source is a flat per-patient clinical table (one row per patient/observation whose columns are all clinical variables — e.g. a cohort or simulation table of labs + vitals + anthropometrics + demographics + condition/outcome flags), do NOT send demographics and binary flags to "All others". Instead map **every** clinical column to an event:
+   - Laboratory / blood-serum assays (HDL, LDL, TG, HbA1c, creatinine, urate, CRP, glucose, …) → `event` / `lab_event`
+   - Every other clinical measurement — vital signs (SBP, DBP), anthropometrics (BMI, waist-hip ratio), demographics (age, sex), and binary condition/outcome flags (HTN, DM, CKD, Afib, dyslipidemia, family history, smoking, prevalent/incident disease, follow-up time, …) → `event` / `chart_event`
+   - Free-text clinical narrative columns → `note_clinical`
+   - Only true identifier/administrative columns stay out of the value rows (subject id → `Patient_id`).
+
+   Binary/categorical flags are still events: keep `Variable_type = 'numeric'` (or `string`) and `Is_categorical = '1'`. This convention is specific to flat clinical tables; it does NOT change the general MIMIC Mapping Rules above (in MIMIC, demographics from `patients` remain "All others").
 
 ## References
 

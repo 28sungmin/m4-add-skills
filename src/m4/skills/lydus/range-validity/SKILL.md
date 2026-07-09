@@ -27,7 +27,7 @@ Detects **IQR-based outliers** in numeric variables of a QUIQ-format table. A va
 
 ## SQL Support
 
-**Available.** `scripts/duckdb.sql` uses `PERCENTILE_CONT` for IQR calculation — faster for large datasets. Python version (`scripts/range_validity.py`) adds boxplot visualization and outlier CSV export.
+**Available.** `scripts/duckdb.sql` uses `PERCENTILE_CONT` for IQR calculation — faster for large datasets. **Both** the SQL and Python paths produce the per-variable boxplot PNGs (the SQL path draws them with matplotlib from the pooled numeric values); the Python version (`scripts/range_validity.py`) additionally exports the full outlier CSV.
 
 ## Filtering Logic
 
@@ -58,15 +58,19 @@ Detects **IQR-based outliers** in numeric variables of a QUIQ-format table. A va
 | `range_validity_total.txt` | Overall Range Validity (%), Total Num, Outlier Num |
 | `range_validity_summary.csv` | Per-(table, variable): Total_num, under/upper/total outlier counts and proportions, Range Validity (%) |
 | `range_validity_outlier_total.csv` | All outlier rows with Direction ('under'/'upper') |
-| `range_validity_boxplots/` | Per-variable boxplot PNGs (Python version only) |
+| `range_validity_boxplots/` | Per-variable boxplot PNGs (**always produced** — both SQL and Python paths) |
 
 ## How to Run
 
-### SQL 버전 (빠름, boxplot 없음)
+### SQL 버전 (빠름, boxplot 포함)
 
 ```python
 import os
+import re
 import duckdb
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 skill_dir = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(skill_dir, "scripts/duckdb.sql")) as f:
@@ -89,7 +93,39 @@ with open(f"{save_path}/range_validity_total.txt", "w") as f:
     f.write(f"Range Validity (%) = {range_validity}\n")
     f.write(f"Total Num = {total_num}\n")
     f.write(f"Outlier Num = {outlier_num}\n")
-print(f"Saved {len(df):,} rows → {save_path}")
+
+# Boxplots — one PNG per (table, variable), same style as the Python version.
+# Values are the pooled numeric values per Variable_name (matches IQR pooling).
+box_dir = os.path.join(save_path, "range_validity_boxplots")
+os.makedirs(box_dir, exist_ok=True)
+flierprops = dict(marker="o", markerfacecolor="green", markersize=2,
+                  linestyle="none", alpha=0.2)
+for idx, row in df.reset_index(drop=True).iterrows():
+    table_name, var_name = row["Original_table_name"], row["Variable_name"]
+    vals = duckdb.sql(
+        "SELECT TRY_CAST(Value AS DOUBLE) AS v "
+        f"FROM read_csv_auto('{quiq_csv}', all_varchar=true) "
+        f"WHERE Variable_name = '{var_name}' "
+        "AND Variable_type ILIKE '%numeric%' "
+        "AND TRY_CAST(Is_categorical AS INTEGER) = 0 "
+        "AND TRY_CAST(Value AS DOUBLE) IS NOT NULL"
+    ).df()["v"].tolist()
+
+    fig = plt.figure(figsize=(3, 6))
+    ax = fig.add_subplot(111)
+    if vals:
+        ax.boxplot(vals, flierprops=flierprops)
+        ax.set_title(f"{table_name} - {var_name}", fontsize=10, fontweight="bold")
+    else:
+        ax.set_title(f"{table_name} - {var_name}\n(No data)", fontsize=14, color="gray")
+        ax.set_xticks([]); ax.set_yticks([])
+    fig.set_tight_layout(True)
+    safe_t = re.sub(r'[\\/:*?"<>|]', " ", str(table_name))
+    safe_v = re.sub(r'[\\/:*?"<>|]', " ", str(var_name))
+    fig.savefig(os.path.join(box_dir, f"{idx}_{safe_t}_{safe_v}.png"))
+    plt.close(fig)
+
+print(f"Saved {len(df):,} rows + {len(df)} boxplots → {save_path}")
 ```
 
 ### Python 버전 (boxplot + outlier 상세 포함)
@@ -135,7 +171,7 @@ python scripts/range_validity.py --config config.yaml
    - `os.path.join` 사용 (문자열 연결 대신)
    - `weight` 파라미터 외부 노출 (원본 하드코딩 1.5)
 
-5. **Dependencies** — `pandas`, `numpy`, `matplotlib` (Python); `duckdb` (SQL)
+5. **Dependencies** — `pandas`, `numpy`, `matplotlib` (Python); `duckdb` + `matplotlib` (SQL path — matplotlib is needed for the boxplots)
 
 ## References
 
