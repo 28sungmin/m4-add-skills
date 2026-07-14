@@ -1,0 +1,48 @@
+sources:
+  - url: https://github.com/SmartHealthLab/SHL-Curation-Tool
+    description: SHL-Curation-Tool regex_pipeline — regex-based PHI/PII de-identification labeler for Korean clinical notes (Samsung Medical Center, Smart Health Lab).
+    license: See regex_pipeline/LICENSE in the repository.
+  - url: https://www.mohw.go.kr/board.es?mid=a10411010300&bid=0019&act=view&list_no=374310
+    description: Ministry of Health and Welfare — Medical Data Utilization Guidelines (2022-12-28), basis for the personal-identifier item list.
+    license: Korean government public document.
+
+created:
+  by: Javier Aguirre & Smart Health Lab, Samsung Medical Center (source tool; abstract by Sujeong Lee, SAIHST); packaged as M4 skill by Lee Sungmin (이성민)
+  role: adaptation
+  date: 2026-07-13
+
+reviews:
+  - by: TBD
+    date: TBD
+    scope: technical-accuracy
+    notes: >
+      Verify the headless deid_label.py reproduces the intended tagging on real records
+      (the core functions are copied verbatim from fns/label.py). Confirm the active label set
+      (only 7 tags active in smc.yml: NAME, IDENTIFICATION_NUMBER, ADDRESS, DATE, TIME, PERIOD,
+      OTHER_HOSPITAL; AGE, DATETIME, and all six DISEASE_* are commented out) against the intended
+      de-identification scope, and decide whether to enable AGE/DATETIME and the sensitive-diagnosis
+      labels. Review disease_kcd.yml / disease_name.yml coverage for sensitive-diagnosis recall.
+      Note the original fns/label.py main() is in a Doccano-server state and its standalone CLI
+      does not run cleanly as-is.
+
+references:
+  - SHL-Curation-Tool repository. https://github.com/SmartHealthLab/SHL-Curation-Tool
+  - Ministry of Health and Welfare. "Medical Data Utilization Guidelines" (의료데이터 활용 가이드라인), 2022-12-28.
+  - Aguirre J. "Samsung Medical Center Regex Curation Tool", Smart Health Lab, 2023-12-07.
+
+changelog:
+  - version: "1.0"
+    date: 2026-07-13
+    summary: >
+      Initial skill creation from SHL-Curation-Tool regex_pipeline. Slimmed to the
+      de-identification labeling feature: ships only the config rules (config/smc.yml,
+      config/disease_kcd.yml, config/disease_name.yml) and a self-contained headless
+      deid_label.py that copies the original rule-engine functions verbatim
+      (load_config/make_alias/get_patterns/make_pattern/add_label) to give a working text/CSV
+      labeling CLI+API. The upstream fns/ implementation (label.py main() is in a broken Doccano
+      REST state), the auxiliary utilities (grep/column2txt/compare/view_tag.html), shell
+      wrappers, and repo docs are NOT vendored — available in the source repo. The out-of-scope
+      bert_pipeline is also excluded. Verified reproduction of the abstract's example
+      (24.08.01 → <DATE>24.08.01</DATE>). No SQL (operates on raw free text). Documented that
+      only 7 of the 15 abstract labels are active in the shipped smc.yml (AGE, DATETIME, and all
+      six DISEASE_* items are commented out; verified by parsing the config).

@@ -1,0 +1,38 @@
+sources:
+  - url: https://github.com/Impku/LYDUS-DCM-Checker
+    description: LYDUS-DCM-Checker v1.0.6 — DICOM (X-ray) header label curation checker (PyQt5 GUI, SimpleITK), Bonecentriq / Yonsei University.
+    license: See repository (no explicit license file; academic use, HI17C1234 funded).
+
+created:
+  by: Sang Wouk Cho, Sookyeoung Han, Namki Hong (Bonecentriq, Yonsei University) (source tool); packaged as M4 skill by Lee Sungmin (이성민)
+  role: adaptation
+  date: 2026-07-13
+
+reviews:
+  - by: TBD
+    date: TBD
+    scope: technical-accuracy
+    notes: >
+      Verify the headless dcm_checker.py reproduces the original GUI score on real DICOM files
+      (21-tag set, int(present/21*100)). Confirm the pydicom port matches the SimpleITK metadata
+      semantics (non-empty value check). Reconcile the 0-100 vs one-million point scale wording
+      in the source docs. Note: the abstract's auto-fill feature is intentionally NOT implemented
+      here, matching the original v1.0.6 code.
+
+references:
+  - LYDUS-DCM-Checker repository. https://github.com/Impku/LYDUS-DCM-Checker
+  - Cho SW, Han S, Hong N. "DCM-Checker" v1.0.6, Bonecentriq, Yonsei University, 2022.
+  - DICOM PS3.6 data dictionary.
+
+changelog:
+  - version: "1.0"
+    date: 2026-07-13
+    summary: >
+      Initial skill creation from LYDUS-DCM-Checker v1.0.6. Slimmed to a headless, importable
+      dcm_checker.py (pydicom; the original PyQt5 GUI is not vendored — available in the source repo)
+      preserving the 21-tag set and int(present/21*100) score with a text report formatter.
+      Faithful to the original: presence/missingness check only — the abstract's auto-fill
+      feature is documented but NOT implemented, matching the original code. pydicom is used
+      in place of the original SimpleITK for portability (identical tag set and score). No SQL
+      (operates on raw DICOM, not QUIQ). Documented the presence-only vs range/type and
+      0-100 vs 1e6 scale discrepancies.

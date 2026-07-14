@@ -1,0 +1,35 @@
+sources:
+  - url: https://github.com/Impku/LYDUS-ECG-Checker
+    description: LYDUS-ECG-Checker v1.0.3 — GE MUSE ECG label curation quality checker (PyQt5 GUI), Bonecentriq / Yonsei University.
+    license: See repository (no explicit license file; academic use, HI17C1234 funded).
+
+created:
+  by: Sang Wouk Cho, Sookyeoung Han, Namki Hong (Bonecentriq, Yonsei University) (source tool); packaged as M4 skill by Lee Sungmin (이성민)
+  role: adaptation
+  date: 2026-07-13
+
+reviews:
+  - by: TBD
+    date: TBD
+    scope: technical-accuracy
+    notes: >
+      Verify the headless ecg_checker.py reproduces the original GUI score exactly on real
+      GE MUSE TSV exports (class1/2/3 attribute lists and present/(present+missing)*100 formula).
+      Confirm Waveform parsing (literal_eval(Waveform)[1], LeadData[0]) matches GE MUSE export
+      structure across MUSE versions. Reconcile the 0-100 vs 1,000,000-point scale and the
+      85 vs 90 threshold discrepancies in the source documentation.
+
+references:
+  - LYDUS-ECG-Checker repository. https://github.com/Impku/LYDUS-ECG-Checker
+  - Cho SW, Han S, Hong N. "ECG-Checker" v1.0.3, Bonecentriq, Yonsei University, 2022.
+
+changelog:
+  - version: "1.0"
+    date: 2026-07-13
+    summary: >
+      Initial skill creation from LYDUS-ECG-Checker v1.0.3. Slimmed to a headless, importable
+      ecg_checker.py (the original PyQt5 GUI is not vendored — available in the source repo) that
+      preserves the class1/2/3 attribute lists and the 0-100 curation-score formula, adds
+      defensive Waveform parsing, a text report formatter, and an optional 12-lead PNG
+      renderer. No SQL (operates on raw GE MUSE TSV, not QUIQ). Documented scale (0-100 vs
+      1e6) and threshold (85 vs 90) discrepancies from the source docs.
